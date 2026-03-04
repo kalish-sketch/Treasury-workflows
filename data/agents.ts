@@ -1,0 +1,16 @@
+import { Agent } from '@/types';
+
+export const AGENT_MAP: Agent[] = [
+  { name:"Cash Visibility Agent", desc:"Real-time consolidated cash position across all banks, automatic BAI2/MT940 ingestion, multi-currency consolidation, anomaly detection.", workflows:["d1","d4","d6","d8"], impact:"Eliminate 2–3 hours/day of manual bank portal work" },
+  { name:"Cash Forecasting Agent", desc:"AI-powered 13-week forecast with automated input collection, variance tracking, scenario modeling, stress testing, and confidence scoring.", workflows:["d2","w1","m2"], impact:"60–80% reduction in forecast preparation time; 30%+ improvement in accuracy" },
+  { name:"Payment Operations Agent", desc:"Unified payment approval across all banks, automated anomaly detection, sanctions screening, dual-auth orchestration, payment timing optimization.", workflows:["d3","w5"], impact:"Reduce payment cycle time by 70%; prevent $100K+ in fraud/errors annually" },
+  { name:"FX & Hedging Agent", desc:"Multi-bank FX execution with competitive bidding, net exposure calculation, hedge effectiveness tracking, automated MTM.", workflows:["d5","w2","q2"], impact:"Save 15–30 bps per FX trade; reduce hedge accounting effort by 80%" },
+  { name:"Covenant & Compliance Agent", desc:"Real-time covenant monitoring with early warning alerts, automated compliance certificate generation, sensitivity modeling.", workflows:["q1","w3","q5"], impact:"Eliminate covenant surprise; reduce compliance effort by 60%" },
+  { name:"Reporting & Analytics Agent", desc:"Automated treasury dashboard, board report generation, drill-down analytics, real-time KPIs.", workflows:["m6","q3","m5"], impact:"Reduce reporting time from days to minutes; enable real-time decision support" },
+  { name:"Bank Fee Optimization Agent", desc:"Automated bank fee analysis, AFP service code mapping, ECR optimization, fee benchmarking.", workflows:["w4","q4"], impact:"Save $100K+ per $100M in payment volume" },
+  { name:"Reconciliation Agent", desc:"Automated bank reconciliation with ML-powered transaction matching, exception routing, workpaper generation.", workflows:["m1","m3","m4"], impact:"Reduce reconciliation time by 80%; catch errors in real-time" },
+  { name:"Risk & Counterparty Agent", desc:"Continuous counterparty monitoring, automated CDS/credit alerts, concentration tracking, deposit insurance optimization.", workflows:["d7","q7"], impact:"Real-time risk visibility; prevent concentrated exposure losses" },
+  { name:"Document & Compliance Agent", desc:"Centralized KYC document management, automated SWIFT/ISO 20022 compliance, policy tracking.", workflows:["m7","m8","a6","q8"], impact:"Eliminate 80% of KYC document chase; ensure format compliance" },
+  { name:"Strategic Planning Agent", desc:"Capital structure modeling, credit facility analysis, rating agency preparation, annual treasury planning.", workflows:["a1","a2","a3","a4","a5","a7","a8","q6"], impact:"Transform annual planning from weeks to days; enable continuous optimization" },
+  { name:"Intercompany Agent", desc:"Automated IC netting, settlement optimization, transfer pricing compliance, cross-border payment orchestration.", workflows:["d4","m4","a7"], impact:"Reduce IC transfers by 70%; ensure transfer pricing compliance" }
+];
