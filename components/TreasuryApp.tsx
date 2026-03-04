@@ -1,24 +1,62 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo } from 'react';
-import { WORKFLOW_DATA } from '@/data/workflows';
-import { AGENT_MAP } from '@/data/agents';
-import { WorkflowDataMap, Workflow } from '@/types';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { WorkflowDataMap, Workflow, Agent } from '@/types';
 import TopBar from './TopBar';
 import TabNav from './TabNav';
 import CompanyProfile, { CompanyProfileHandle } from './CompanyProfile';
 import WorkflowPanel from './WorkflowPanel';
 import SummaryPanel from './SummaryPanel';
 
-function deepCloneWorkflowData(): WorkflowDataMap {
-  return JSON.parse(JSON.stringify(WORKFLOW_DATA));
+function addDefaultsToWorkflowData(raw: Record<string, any>): WorkflowDataMap {
+  const result: WorkflowDataMap = {};
+  for (const [key, cadence] of Object.entries(raw)) {
+    result[key] = {
+      label: cadence.label,
+      tagline: cadence.tagline,
+      color: cadence.color,
+      workflows: cadence.workflows.map((w: any) => ({
+        ...w,
+        doToday: false,
+        wishToDo: false,
+        subs: w.subs || [],
+      })),
+    };
+  }
+  return result;
 }
 
 export default function TreasuryApp() {
   const [activeTab, setActiveTab] = useState('profile');
-  const [workflowData, setWorkflowData] = useState<WorkflowDataMap>(deepCloneWorkflowData);
+  const [workflowData, setWorkflowData] = useState<WorkflowDataMap>({});
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [customWorkflows, setCustomWorkflows] = useState<Record<string, Workflow[]>>({});
+  const [loading, setLoading] = useState(true);
   const profileRef = useRef<CompanyProfileHandle>(null);
+
+  // Fetch workflows and agents from the API
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [wfRes, agRes] = await Promise.all([
+          fetch('/api/workflows'),
+          fetch('/api/agents'),
+        ]);
+        if (wfRes.ok) {
+          const raw = await wfRes.json();
+          setWorkflowData(addDefaultsToWorkflowData(raw));
+        }
+        if (agRes.ok) {
+          setAgents(await agRes.json());
+        }
+      } catch (err) {
+        console.error('Failed to load data from API:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
   const switchTab = useCallback((tabId: string) => {
     setActiveTab(tabId);
@@ -109,7 +147,10 @@ export default function TreasuryApp() {
 
   const resetAll = useCallback(() => {
     if (!confirm('Reset all selections and custom values? This cannot be undone.')) return;
-    setWorkflowData(deepCloneWorkflowData());
+    // Re-fetch from API to reset
+    fetch('/api/workflows').then(r => r.json()).then(raw => {
+      setWorkflowData(addDefaultsToWorkflowData(raw));
+    });
     setCustomWorkflows({});
   }, []);
 
@@ -136,7 +177,7 @@ export default function TreasuryApp() {
     Object.values(workflows).flat().forEach((w: any) => {
       if (w.doToday || w.wishToDo) allSelected.push(w.id);
     });
-    const agents = AGENT_MAP
+    const filteredAgents = agents
       .filter(a => a.workflows.some(wid => allSelected.includes(wid)))
       .map(a => ({ name: a.name, desc: a.desc, impact: a.impact }));
 
@@ -144,7 +185,7 @@ export default function TreasuryApp() {
       exportDate: new Date().toISOString(),
       profile,
       workflows,
-      recommendedAgents: agents,
+      recommendedAgents: filteredAgents,
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -154,7 +195,7 @@ export default function TreasuryApp() {
     a.download = `${(profile.company || 'company').replace(/\s+/g, '-').toLowerCase()}-treasury-assessment.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [workflowData, customWorkflows]);
+  }, [workflowData, customWorkflows, agents]);
 
   const printSummary = useCallback(() => {
     window.print();
@@ -164,7 +205,15 @@ export default function TreasuryApp() {
     return profileRef.current?.getProfile().company || 'Your Company';
   }, [activeTab]);
 
-  const cadenceKeys = ['daily', 'weekly', 'monthly', 'quarterly', 'annual'];
+  const cadenceKeys = Object.keys(workflowData);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#94a3b8' }}>
+        Loading workflows...
+      </div>
+    );
+  }
 
   return (
     <>
@@ -198,6 +247,7 @@ export default function TreasuryApp() {
           <SummaryPanel
             workflowData={workflowData}
             customWorkflows={customWorkflows}
+            agents={agents}
             companyName={companyName}
             onExport={exportJSON}
             onPrint={printSummary}
