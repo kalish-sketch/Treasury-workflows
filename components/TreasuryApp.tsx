@@ -9,7 +9,6 @@ import TabNav from './TabNav';
 import CompanyProfile, { CompanyProfileHandle } from './CompanyProfile';
 import WorkflowPanel from './WorkflowPanel';
 import SummaryPanel from './SummaryPanel';
-import AddWorkflowModal from './AddWorkflowModal';
 
 function deepCloneWorkflowData(): WorkflowDataMap {
   return JSON.parse(JSON.stringify(WORKFLOW_DATA));
@@ -19,8 +18,6 @@ export default function TreasuryApp() {
   const [activeTab, setActiveTab] = useState('profile');
   const [workflowData, setWorkflowData] = useState<WorkflowDataMap>(deepCloneWorkflowData);
   const [customWorkflows, setCustomWorkflows] = useState<Record<string, Workflow[]>>({});
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalCadence, setModalCadence] = useState('');
   const profileRef = useRef<CompanyProfileHandle>(null);
 
   const switchTab = useCallback((tabId: string) => {
@@ -75,18 +72,17 @@ export default function TreasuryApp() {
     });
   }, []);
 
-  const openAddModal = useCallback((cadenceKey: string) => {
-    setModalCadence(cadenceKey);
-    setModalOpen(true);
-  }, []);
-
-  const saveWorkflow = useCallback((cadenceKey: string, data: {
+  const addWorkflow = useCallback((cadenceKey: string, data: {
     name: string; who: string; systems: string; how: string;
     pain: string; hrs: string; err: string; opt: string;
   }) => {
     const newId = 'custom_' + Date.now();
-    const whoHtml = data.who.split(',').map(w => `<span class="who-tag who-treasurer">${w.trim()}</span>`).join(' ');
-    const sysHtml = data.systems.split(',').map(s => `<span class="sys-tag">${s.trim()}</span>`).join(' ');
+    const whoHtml = data.who
+      ? data.who.split(',').map(w => `<span class="who-tag who-treasurer">${w.trim()}</span>`).join(' ')
+      : '';
+    const sysHtml = data.systems
+      ? data.systems.split(',').map(s => `<span class="sys-tag">${s.trim()}</span>`).join(' ')
+      : '';
 
     const newWorkflow: Workflow = {
       id: newId,
@@ -96,9 +92,9 @@ export default function TreasuryApp() {
       systems: sysHtml,
       how: data.how,
       pain: data.pain,
-      hrs: data.hrs || '\u2014',
-      err: data.err || '\u2014',
-      opt: data.opt || '\u2014',
+      hrs: data.hrs || '—',
+      err: data.err || '—',
+      opt: data.opt || '—',
       doToday: false,
       wishToDo: false,
       subs: [],
@@ -109,7 +105,6 @@ export default function TreasuryApp() {
       ...prev,
       [cadenceKey]: [...(prev[cadenceKey] || []), newWorkflow],
     }));
-    setModalOpen(false);
   }, []);
 
   const resetAll = useCallback(() => {
@@ -131,6 +126,7 @@ export default function TreasuryApp() {
       workflows[cadence] = all.map(w => ({
         id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
         hrs: w.hrs, errCost: w.err, optimization: w.opt,
+        how: w.how, pain: w.pain,
         custom: w.custom || false,
         subs: (w.subs || []).map(s => ({ id: s.id, name: s.name })),
       }));
@@ -166,7 +162,7 @@ export default function TreasuryApp() {
 
   const companyName = useMemo(() => {
     return profileRef.current?.getProfile().company || 'Your Company';
-  }, [activeTab]); // re-derive when tab changes (to pick up latest profile input)
+  }, [activeTab]);
 
   const cadenceKeys = ['daily', 'weekly', 'monthly', 'quarterly', 'annual'];
 
@@ -193,7 +189,7 @@ export default function TreasuryApp() {
               onToggleDo={toggleDo}
               onToggleWish={toggleWish}
               onUpdateMetric={updateMetric}
-              onAddWorkflow={openAddModal}
+              onAddWorkflow={addWorkflow}
             />
           </div>
         ))}
@@ -208,13 +204,6 @@ export default function TreasuryApp() {
           />
         </div>
       </div>
-
-      <AddWorkflowModal
-        isOpen={modalOpen}
-        cadenceKey={modalCadence}
-        onClose={() => setModalOpen(false)}
-        onSave={saveWorkflow}
-      />
     </>
   );
 }
