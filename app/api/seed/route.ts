@@ -8,9 +8,9 @@ import { runSeed } from '@/lib/seed';
  * Remove this route once your DB is seeded.
  */
 export async function POST() {
-  const url = process.env.STORAGE_URL;
+  const url = process.env.DATABASE_URL;
   if (!url) {
-    return NextResponse.json({ error: 'STORAGE_URL not configured' }, { status: 500 });
+    return NextResponse.json({ error: 'DATABASE_URL not configured' }, { status: 500 });
   }
 
   try {

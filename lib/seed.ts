@@ -2,7 +2,7 @@
  * Seed script: loads workflow & agent data from static files into Neon.
  *
  * Usage:
- *   STORAGE_URL=... npx tsx lib/seed.ts
+ *   DATABASE_URL=... npx tsx lib/seed.ts
  */
 
 import { neon } from '@neondatabase/serverless';
@@ -467,9 +467,9 @@ export async function runSeed(url: string) {
 
 // CLI entrypoint
 if (typeof process !== 'undefined' && process.argv[1]?.endsWith('seed.ts')) {
-  const url = process.env.STORAGE_URL;
+  const url = process.env.DATABASE_URL;
   if (!url) {
-    console.error('STORAGE_URL is required. Set it as an environment variable.');
+    console.error('DATABASE_URL is required. Set it as an environment variable.');
     process.exit(1);
   }
   runSeed(url)
