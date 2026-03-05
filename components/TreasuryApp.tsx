@@ -1,12 +1,18 @@
 'use client';
 
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { WORKFLOW_DATA } from '@/data/workflows';
+import { AGENT_MAP } from '@/data/agents';
 import { WorkflowDataMap, Workflow, Agent } from '@/types';
 import TopBar from './TopBar';
 import TabNav from './TabNav';
 import CompanyProfile, { CompanyProfileHandle } from './CompanyProfile';
 import WorkflowPanel from './WorkflowPanel';
 import SummaryPanel from './SummaryPanel';
+
+function deepCloneWorkflowData(): WorkflowDataMap {
+  return JSON.parse(JSON.stringify(WORKFLOW_DATA));
+}
 
 function addDefaultsToWorkflowData(raw: Record<string, any>): WorkflowDataMap {
   const result: WorkflowDataMap = {};
@@ -28,13 +34,13 @@ function addDefaultsToWorkflowData(raw: Record<string, any>): WorkflowDataMap {
 
 export default function TreasuryApp() {
   const [activeTab, setActiveTab] = useState('profile');
-  const [workflowData, setWorkflowData] = useState<WorkflowDataMap>({});
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [workflowData, setWorkflowData] = useState<WorkflowDataMap>(deepCloneWorkflowData);
+  const [agents, setAgents] = useState<Agent[]>(AGENT_MAP);
   const [customWorkflows, setCustomWorkflows] = useState<Record<string, Workflow[]>>({});
   const [loading, setLoading] = useState(true);
   const profileRef = useRef<CompanyProfileHandle>(null);
 
-  // Fetch workflows and agents from the API
+  // Try to fetch from API; if DB is empty or unavailable, keep static fallback
   useEffect(() => {
     async function fetchData() {
       try {
@@ -44,13 +50,18 @@ export default function TreasuryApp() {
         ]);
         if (wfRes.ok) {
           const raw = await wfRes.json();
-          setWorkflowData(addDefaultsToWorkflowData(raw));
+          if (Object.keys(raw).length > 0) {
+            setWorkflowData(addDefaultsToWorkflowData(raw));
+          }
         }
         if (agRes.ok) {
-          setAgents(await agRes.json());
+          const agentData = await agRes.json();
+          if (agentData.length > 0) {
+            setAgents(agentData);
+          }
         }
       } catch (err) {
-        console.error('Failed to load data from API:', err);
+        console.error('API unavailable, using static data:', err);
       } finally {
         setLoading(false);
       }
@@ -147,10 +158,19 @@ export default function TreasuryApp() {
 
   const resetAll = useCallback(() => {
     if (!confirm('Reset all selections and custom values? This cannot be undone.')) return;
-    // Re-fetch from API to reset
-    fetch('/api/workflows').then(r => r.json()).then(raw => {
-      setWorkflowData(addDefaultsToWorkflowData(raw));
-    });
+    // Try API first, fall back to static data
+    fetch('/api/workflows')
+      .then(r => r.json())
+      .then(raw => {
+        if (Object.keys(raw).length > 0) {
+          setWorkflowData(addDefaultsToWorkflowData(raw));
+        } else {
+          setWorkflowData(deepCloneWorkflowData());
+        }
+      })
+      .catch(() => {
+        setWorkflowData(deepCloneWorkflowData());
+      });
     setCustomWorkflows({});
   }, []);
 
@@ -206,14 +226,6 @@ export default function TreasuryApp() {
   }, [activeTab]);
 
   const cadenceKeys = Object.keys(workflowData);
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#94a3b8' }}>
-        Loading workflows...
-      </div>
-    );
-  }
 
   return (
     <>
