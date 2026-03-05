@@ -5,7 +5,8 @@ interface SummaryPanelProps {
   customWorkflows: Record<string, Workflow[]>;
   agents: Agent[];
   companyName: string;
-  onExport: () => void;
+  onSubmit: () => void;
+  submitting: boolean;
   onPrint: () => void;
 }
 
@@ -54,7 +55,8 @@ export default function SummaryPanel({
   customWorkflows,
   agents,
   companyName,
-  onExport,
+  onSubmit,
+  submitting,
   onPrint,
 }: SummaryPanelProps) {
   const doBucket = emptyBucket();
@@ -177,11 +179,13 @@ export default function SummaryPanel({
       </div>
 
       <div className="export-panel">
-        <h3>Export & Share</h3>
+        <h3>Submit & Share</h3>
         <p style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>
-          Export the full assessment (company profile + workflow selections + metrics) as JSON for implementation planning.
+          Submit the full assessment (company profile + workflow selections + metrics) for review.
         </p>
-        <button className="btn btn-primary" onClick={onExport}>Export Assessment JSON</button>
+        <button className="btn btn-primary" onClick={onSubmit} disabled={submitting}>
+          {submitting ? 'Submitting...' : 'Submit Assessment'}
+        </button>
         <button className="btn btn-secondary" style={{ marginLeft: '8px' }} onClick={onPrint}>Print Summary</button>
       </div>
     </>

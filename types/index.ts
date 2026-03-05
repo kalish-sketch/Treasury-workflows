@@ -3,6 +3,8 @@ export interface SubWorkflow {
   name: string;
   how: string;
   pain: string;
+  doToday?: boolean;
+  wishToDo?: boolean;
 }
 
 export interface Workflow {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Workflow } from '@/types';
 import SubWorkflowRow from './SubWorkflowRow';
 
@@ -10,7 +10,13 @@ interface WorkflowRowProps {
   onToggleDo: (cadence: string, id: string, val: boolean) => void;
   onToggleWish: (cadence: string, id: string, val: boolean) => void;
   onUpdateMetric: (cadence: string, id: string, field: string, val: string) => void;
+  onUpdateSub: (cadence: string, workflowId: string, subId: string, field: string, val: string) => void;
+  onToggleSubDo: (cadence: string, workflowId: string, subId: string, val: boolean) => void;
+  onToggleSubWish: (cadence: string, workflowId: string, subId: string, val: boolean) => void;
+  onAddSub: (cadence: string, workflowId: string, data: { name: string; how: string; pain: string }) => void;
 }
+
+const EMPTY_SUB = { name: '', how: '', pain: '' };
 
 export default function WorkflowRow({
   workflow: w,
@@ -18,9 +24,30 @@ export default function WorkflowRow({
   onToggleDo,
   onToggleWish,
   onUpdateMetric,
+  onUpdateSub,
+  onToggleSubDo,
+  onToggleSubWish,
+  onAddSub,
 }: WorkflowRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const [subDraft, setSubDraft] = useState({ ...EMPTY_SUB });
+  const subNameRef = useRef<HTMLInputElement>(null);
   const hasSubs = w.subs && w.subs.length > 0;
+  const subDirty = subDraft.name.trim() !== '';
+
+  const commitSub = useCallback(() => {
+    if (!subDraft.name.trim()) return;
+    onAddSub(cadenceKey, w.id, { ...subDraft });
+    setSubDraft({ ...EMPTY_SUB });
+    setTimeout(() => subNameRef.current?.focus(), 50);
+  }, [subDraft, cadenceKey, w.id, onAddSub]);
+
+  const handleSubKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey && subDirty) {
+      e.preventDefault();
+      commitSub();
+    }
+  }, [subDirty, commitSub]);
 
   return (
     <>
@@ -45,15 +72,13 @@ export default function WorkflowRow({
         </td>
         <td>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {hasSubs && (
-              <button
-                className="expand-btn"
-                onClick={() => setExpanded(!expanded)}
-                title={expanded ? 'Collapse sub-workflows' : 'Expand sub-workflows'}
-              >
-                {expanded ? '▾' : '▸'}
-              </button>
-            )}
+            <button
+              className="expand-btn"
+              onClick={() => setExpanded(!expanded)}
+              title={expanded ? 'Collapse sub-workflows' : 'Expand sub-workflows'}
+            >
+              {expanded ? '▾' : '▸'}
+            </button>
             <div>
               <span className="workflow-name">{w.name}</span>
               <br />
@@ -101,9 +126,72 @@ export default function WorkflowRow({
           />
         </td>
       </tr>
-      {expanded && hasSubs && w.subs.map(s => (
-        <SubWorkflowRow key={s.id} sub={s} />
-      ))}
+      {expanded && (
+        <>
+          {hasSubs && w.subs.map(s => (
+            <SubWorkflowRow
+              key={s.id}
+              sub={s}
+              cadenceKey={cadenceKey}
+              workflowId={w.id}
+              onUpdateSub={onUpdateSub}
+              onToggleSubDo={onToggleSubDo}
+              onToggleSubWish={onToggleSubWish}
+            />
+          ))}
+          {/* Inline add sub-workflow row */}
+          <tr className="sub-row inline-add-row" onKeyDown={handleSubKeyDown}>
+            <td></td>
+            <td></td>
+            <td>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ color: '#9ca3af', fontSize: '13px' }}>{'\u21B3'}</span>
+                <input
+                  ref={subNameRef}
+                  type="text"
+                  className="inline-add-input name"
+                  placeholder="New sub-workflow…"
+                  value={subDraft.name}
+                  onChange={e => setSubDraft(prev => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+            </td>
+            <td colSpan={2}></td>
+            <td>
+              <textarea
+                className="inline-add-input textarea"
+                placeholder="How it works…"
+                value={subDraft.how}
+                onChange={e => setSubDraft(prev => ({ ...prev, how: e.target.value }))}
+                rows={2}
+              />
+            </td>
+            <td>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <textarea
+                  className="inline-add-input textarea"
+                  placeholder="Pain points…"
+                  value={subDraft.pain}
+                  onChange={e => setSubDraft(prev => ({ ...prev, pain: e.target.value }))}
+                  rows={2}
+                />
+                {subDirty && (
+                  <button
+                    className="inline-add-commit"
+                    onClick={commitSub}
+                    title="Add sub-workflow (or press Enter)"
+                  >
+                    ↵
+                  </button>
+                )}
+              </div>
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+        </>
+      )}
     </>
   );
 }

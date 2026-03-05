@@ -11,7 +11,13 @@ import WorkflowPanel from './WorkflowPanel';
 import SummaryPanel from './SummaryPanel';
 
 function deepCloneWorkflowData(): WorkflowDataMap {
-  return JSON.parse(JSON.stringify(WORKFLOW_DATA));
+  const raw = JSON.parse(JSON.stringify(WORKFLOW_DATA)) as WorkflowDataMap;
+  for (const cadence of Object.values(raw)) {
+    for (const w of cadence.workflows) {
+      w.subs = w.subs.map(s => ({ ...s, doToday: s.doToday ?? false, wishToDo: s.wishToDo ?? false }));
+    }
+  }
+  return raw;
 }
 
 function addDefaultsToWorkflowData(raw: Record<string, any>): WorkflowDataMap {
@@ -25,7 +31,7 @@ function addDefaultsToWorkflowData(raw: Record<string, any>): WorkflowDataMap {
         ...w,
         doToday: false,
         wishToDo: false,
-        subs: w.subs || [],
+        subs: (w.subs || []).map((s: any) => ({ ...s, doToday: false, wishToDo: false })),
       })),
     };
   }
@@ -38,6 +44,7 @@ export default function TreasuryApp() {
   const [agents, setAgents] = useState<Agent[]>(AGENT_MAP);
   const [customWorkflows, setCustomWorkflows] = useState<Record<string, Workflow[]>>({});
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const profileRef = useRef<CompanyProfileHandle>(null);
 
   // Try to fetch from API; if DB is empty or unavailable, keep static fallback
@@ -156,6 +163,75 @@ export default function TreasuryApp() {
     }));
   }, []);
 
+  const updateSub = useCallback((cadence: string, workflowId: string, subId: string, field: string, val: string) => {
+    const updateSubs = (w: Workflow) => {
+      if (w.id !== workflowId) return w;
+      return { ...w, subs: w.subs.map(s => s.id === subId ? { ...s, [field]: val } : s) };
+    };
+    setWorkflowData(prev => {
+      const next = { ...prev };
+      next[cadence] = { ...next[cadence], workflows: next[cadence].workflows.map(updateSubs) };
+      return next;
+    });
+    setCustomWorkflows(prev => {
+      const arr = prev[cadence];
+      if (!arr) return prev;
+      return { ...prev, [cadence]: arr.map(updateSubs) };
+    });
+  }, []);
+
+  const addSub = useCallback((cadence: string, workflowId: string, data: { name: string; how: string; pain: string }) => {
+    const newSub = { id: 'sub_' + Date.now(), name: data.name, how: data.how, pain: data.pain, doToday: false, wishToDo: false };
+    const appendSub = (w: Workflow) => {
+      if (w.id !== workflowId) return w;
+      return { ...w, subs: [...w.subs, newSub] };
+    };
+    setWorkflowData(prev => {
+      const next = { ...prev };
+      next[cadence] = { ...next[cadence], workflows: next[cadence].workflows.map(appendSub) };
+      return next;
+    });
+    setCustomWorkflows(prev => {
+      const arr = prev[cadence];
+      if (!arr) return prev;
+      return { ...prev, [cadence]: arr.map(appendSub) };
+    });
+  }, []);
+
+  const toggleSubDo = useCallback((cadence: string, workflowId: string, subId: string, val: boolean) => {
+    const update = (w: Workflow) => {
+      if (w.id !== workflowId) return w;
+      return { ...w, subs: w.subs.map(s => s.id === subId ? { ...s, doToday: val } : s) };
+    };
+    setWorkflowData(prev => {
+      const next = { ...prev };
+      next[cadence] = { ...next[cadence], workflows: next[cadence].workflows.map(update) };
+      return next;
+    });
+    setCustomWorkflows(prev => {
+      const arr = prev[cadence];
+      if (!arr) return prev;
+      return { ...prev, [cadence]: arr.map(update) };
+    });
+  }, []);
+
+  const toggleSubWish = useCallback((cadence: string, workflowId: string, subId: string, val: boolean) => {
+    const update = (w: Workflow) => {
+      if (w.id !== workflowId) return w;
+      return { ...w, subs: w.subs.map(s => s.id === subId ? { ...s, wishToDo: val } : s) };
+    };
+    setWorkflowData(prev => {
+      const next = { ...prev };
+      next[cadence] = { ...next[cadence], workflows: next[cadence].workflows.map(update) };
+      return next;
+    });
+    setCustomWorkflows(prev => {
+      const arr = prev[cadence];
+      if (!arr) return prev;
+      return { ...prev, [cadence]: arr.map(update) };
+    });
+  }, []);
+
   const resetAll = useCallback(() => {
     if (!confirm('Reset all selections and custom values? This cannot be undone.')) return;
     // Try API first, fall back to static data
@@ -174,48 +250,54 @@ export default function TreasuryApp() {
     setCustomWorkflows({});
   }, []);
 
-  const exportJSON = useCallback(() => {
-    const profile = profileRef.current?.getProfile() || {
-      company: '', revenue: '', industry: '', entities: '', countries: '',
-      currencies: [], teamSize: '', numBanks: '', banks: [], numAccounts: '',
-      erp: '', tms: '', otherSystems: [], paymentVolume: '', facilities: '',
-    };
+  const submitAssessment = useCallback(async () => {
+    setSubmitting(true);
+    try {
+      const profile = profileRef.current?.getProfile() || {
+        company: '', revenue: '', industry: '', entities: '', countries: '',
+        currencies: [], teamSize: '', numBanks: '', banks: [], numAccounts: '',
+        erp: '', tms: '', otherSystems: [], paymentVolume: '', facilities: '',
+      };
 
-    const workflows: Record<string, unknown[]> = {};
-    Object.keys(workflowData).forEach(cadence => {
-      const all = [...workflowData[cadence].workflows, ...(customWorkflows[cadence] || [])];
-      workflows[cadence] = all.map(w => ({
-        id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
-        hrs: w.hrs, errCost: w.err, optimization: w.opt,
-        how: w.how, pain: w.pain,
-        custom: w.custom || false,
-        subs: (w.subs || []).map(s => ({ id: s.id, name: s.name })),
-      }));
-    });
+      const wfSelections: Record<string, unknown[]> = {};
+      Object.keys(workflowData).forEach(cadence => {
+        wfSelections[cadence] = workflowData[cadence].workflows.map(w => ({
+          id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
+          hrs: w.hrs, errCost: w.err, optimization: w.opt,
+          how: w.how, pain: w.pain,
+          subs: (w.subs || []).map(s => ({ id: s.id, name: s.name })),
+        }));
+      });
 
-    const allSelected: string[] = [];
-    Object.values(workflows).flat().forEach((w: any) => {
-      if (w.doToday || w.wishToDo) allSelected.push(w.id);
-    });
-    const filteredAgents = agents
-      .filter(a => a.workflows.some(wid => allSelected.includes(wid)))
-      .map(a => ({ name: a.name, desc: a.desc, impact: a.impact }));
+      const customWfs: Record<string, unknown[]> = {};
+      Object.keys(customWorkflows).forEach(cadence => {
+        customWfs[cadence] = (customWorkflows[cadence] || []).map(w => ({
+          id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
+          hrs: w.hrs, errCost: w.err, optimization: w.opt,
+          how: w.how, pain: w.pain, custom: true, subs: [],
+        }));
+      });
 
-    const data = {
-      exportDate: new Date().toISOString(),
-      profile,
-      workflows,
-      recommendedAgents: filteredAgents,
-    };
+      const res = await fetch('/api/assessments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: profile.company || '',
+          profile,
+          workflowSelections: wfSelections,
+          customWorkflows: customWfs,
+        }),
+      });
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(profile.company || 'company').replace(/\s+/g, '-').toLowerCase()}-treasury-assessment.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [workflowData, customWorkflows, agents]);
+      if (!res.ok) throw new Error('Failed to submit');
+      alert('Assessment submitted successfully!');
+    } catch (err) {
+      alert('Error submitting assessment. Please try again.');
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [workflowData, customWorkflows]);
 
   const printSummary = useCallback(() => {
     window.print();
@@ -231,7 +313,8 @@ export default function TreasuryApp() {
     <>
       <TopBar
         onReset={resetAll}
-        onExport={exportJSON}
+        onSubmit={submitAssessment}
+        submitting={submitting}
         onViewRecommendations={() => switchTab('summary')}
       />
       <div className="main-content">
@@ -251,6 +334,10 @@ export default function TreasuryApp() {
               onToggleWish={toggleWish}
               onUpdateMetric={updateMetric}
               onAddWorkflow={addWorkflow}
+              onUpdateSub={updateSub}
+              onToggleSubDo={toggleSubDo}
+              onToggleSubWish={toggleSubWish}
+              onAddSub={addSub}
             />
           </div>
         ))}
@@ -261,7 +348,8 @@ export default function TreasuryApp() {
             customWorkflows={customWorkflows}
             agents={agents}
             companyName={companyName}
-            onExport={exportJSON}
+            onSubmit={submitAssessment}
+            submitting={submitting}
             onPrint={printSummary}
           />
         </div>
