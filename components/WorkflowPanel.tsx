@@ -16,6 +16,8 @@ interface WorkflowPanelProps {
     pain: string; hrs: string; err: string; opt: string;
   }) => void;
   onUpdateSub: (cadence: string, workflowId: string, subId: string, field: string, val: string) => void;
+  onToggleSubDo: (cadence: string, workflowId: string, subId: string, val: boolean) => void;
+  onToggleSubWish: (cadence: string, workflowId: string, subId: string, val: boolean) => void;
   onAddSub: (cadence: string, workflowId: string, data: { name: string; how: string; pain: string }) => void;
 }
 
@@ -30,6 +32,8 @@ export default function WorkflowPanel({
   onUpdateMetric,
   onAddWorkflow,
   onUpdateSub,
+  onToggleSubDo,
+  onToggleSubWish,
   onAddSub,
 }: WorkflowPanelProps) {
   const allWorkflows = [...cadence.workflows, ...customWorkflows];
@@ -100,6 +104,8 @@ export default function WorkflowPanel({
               onToggleWish={onToggleWish}
               onUpdateMetric={onUpdateMetric}
               onUpdateSub={onUpdateSub}
+              onToggleSubDo={onToggleSubDo}
+              onToggleSubWish={onToggleSubWish}
               onAddSub={onAddSub}
             />
           ))}

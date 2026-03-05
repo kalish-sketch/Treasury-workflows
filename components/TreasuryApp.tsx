@@ -11,7 +11,13 @@ import WorkflowPanel from './WorkflowPanel';
 import SummaryPanel from './SummaryPanel';
 
 function deepCloneWorkflowData(): WorkflowDataMap {
-  return JSON.parse(JSON.stringify(WORKFLOW_DATA));
+  const raw = JSON.parse(JSON.stringify(WORKFLOW_DATA)) as WorkflowDataMap;
+  for (const cadence of Object.values(raw)) {
+    for (const w of cadence.workflows) {
+      w.subs = w.subs.map(s => ({ ...s, doToday: s.doToday ?? false, wishToDo: s.wishToDo ?? false }));
+    }
+  }
+  return raw;
 }
 
 function addDefaultsToWorkflowData(raw: Record<string, any>): WorkflowDataMap {
@@ -25,7 +31,7 @@ function addDefaultsToWorkflowData(raw: Record<string, any>): WorkflowDataMap {
         ...w,
         doToday: false,
         wishToDo: false,
-        subs: w.subs || [],
+        subs: (w.subs || []).map((s: any) => ({ ...s, doToday: false, wishToDo: false })),
       })),
     };
   }
@@ -175,7 +181,7 @@ export default function TreasuryApp() {
   }, []);
 
   const addSub = useCallback((cadence: string, workflowId: string, data: { name: string; how: string; pain: string }) => {
-    const newSub = { id: 'sub_' + Date.now(), name: data.name, how: data.how, pain: data.pain };
+    const newSub = { id: 'sub_' + Date.now(), name: data.name, how: data.how, pain: data.pain, doToday: false, wishToDo: false };
     const appendSub = (w: Workflow) => {
       if (w.id !== workflowId) return w;
       return { ...w, subs: [...w.subs, newSub] };
@@ -189,6 +195,40 @@ export default function TreasuryApp() {
       const arr = prev[cadence];
       if (!arr) return prev;
       return { ...prev, [cadence]: arr.map(appendSub) };
+    });
+  }, []);
+
+  const toggleSubDo = useCallback((cadence: string, workflowId: string, subId: string, val: boolean) => {
+    const update = (w: Workflow) => {
+      if (w.id !== workflowId) return w;
+      return { ...w, subs: w.subs.map(s => s.id === subId ? { ...s, doToday: val } : s) };
+    };
+    setWorkflowData(prev => {
+      const next = { ...prev };
+      next[cadence] = { ...next[cadence], workflows: next[cadence].workflows.map(update) };
+      return next;
+    });
+    setCustomWorkflows(prev => {
+      const arr = prev[cadence];
+      if (!arr) return prev;
+      return { ...prev, [cadence]: arr.map(update) };
+    });
+  }, []);
+
+  const toggleSubWish = useCallback((cadence: string, workflowId: string, subId: string, val: boolean) => {
+    const update = (w: Workflow) => {
+      if (w.id !== workflowId) return w;
+      return { ...w, subs: w.subs.map(s => s.id === subId ? { ...s, wishToDo: val } : s) };
+    };
+    setWorkflowData(prev => {
+      const next = { ...prev };
+      next[cadence] = { ...next[cadence], workflows: next[cadence].workflows.map(update) };
+      return next;
+    });
+    setCustomWorkflows(prev => {
+      const arr = prev[cadence];
+      if (!arr) return prev;
+      return { ...prev, [cadence]: arr.map(update) };
     });
   }, []);
 
@@ -295,6 +335,8 @@ export default function TreasuryApp() {
               onUpdateMetric={updateMetric}
               onAddWorkflow={addWorkflow}
               onUpdateSub={updateSub}
+              onToggleSubDo={toggleSubDo}
+              onToggleSubWish={toggleSubWish}
               onAddSub={addSub}
             />
           </div>

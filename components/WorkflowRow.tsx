@@ -11,6 +11,8 @@ interface WorkflowRowProps {
   onToggleWish: (cadence: string, id: string, val: boolean) => void;
   onUpdateMetric: (cadence: string, id: string, field: string, val: string) => void;
   onUpdateSub: (cadence: string, workflowId: string, subId: string, field: string, val: string) => void;
+  onToggleSubDo: (cadence: string, workflowId: string, subId: string, val: boolean) => void;
+  onToggleSubWish: (cadence: string, workflowId: string, subId: string, val: boolean) => void;
   onAddSub: (cadence: string, workflowId: string, data: { name: string; how: string; pain: string }) => void;
 }
 
@@ -23,6 +25,8 @@ export default function WorkflowRow({
   onToggleWish,
   onUpdateMetric,
   onUpdateSub,
+  onToggleSubDo,
+  onToggleSubWish,
   onAddSub,
 }: WorkflowRowProps) {
   const [expanded, setExpanded] = useState(false);
@@ -131,6 +135,8 @@ export default function WorkflowRow({
               cadenceKey={cadenceKey}
               workflowId={w.id}
               onUpdateSub={onUpdateSub}
+              onToggleSubDo={onToggleSubDo}
+              onToggleSubWish={onToggleSubWish}
             />
           ))}
           {/* Inline add sub-workflow row */}
