@@ -289,10 +289,14 @@ export default function TreasuryApp() {
         }),
       });
 
-      if (!res.ok) throw new Error('Failed to submit');
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `HTTP ${res.status}`);
+      }
       alert('Assessment submitted successfully!');
     } catch (err) {
-      alert('Error submitting assessment. Please try again.');
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      alert(`Error submitting assessment: ${msg}`);
       console.error(err);
     } finally {
       setSubmitting(false);

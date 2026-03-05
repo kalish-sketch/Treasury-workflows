@@ -372,13 +372,7 @@ const AGENTS = [
 
 // ── Main seed function ──
 
-async function seed() {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    console.error('DATABASE_URL is required. Set it as an environment variable.');
-    process.exit(1);
-  }
-
+export async function runSeed(url: string) {
   const sql = neon(url);
   const db = drizzle(sql, { schema });
 
@@ -463,14 +457,27 @@ async function seed() {
     }
   }
 
-  console.log('Seed complete! Inserted:');
-  console.log(`  ${CADENCES.length} cadences`);
-  console.log(`  ${Object.values(WORKFLOWS).flat().length} workflows`);
-  console.log(`  ${Object.values(WORKFLOWS).flat().reduce((sum, w) => sum + w.subs.length, 0)} sub-workflows`);
-  console.log(`  ${AGENTS.length} agents`);
+  return {
+    cadences: CADENCES.length,
+    workflows: Object.values(WORKFLOWS).flat().length,
+    subWorkflows: Object.values(WORKFLOWS).flat().reduce((sum, w) => sum + w.subs.length, 0),
+    agents: AGENTS.length,
+  };
 }
 
-seed().catch(err => {
-  console.error('Seed failed:', err);
-  process.exit(1);
-});
+// CLI entrypoint
+if (typeof process !== 'undefined' && process.argv[1]?.endsWith('seed.ts')) {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    console.error('DATABASE_URL is required. Set it as an environment variable.');
+    process.exit(1);
+  }
+  runSeed(url)
+    .then(counts => {
+      console.log('Seed complete!', counts);
+    })
+    .catch(err => {
+      console.error('Seed failed:', err);
+      process.exit(1);
+    });
+}

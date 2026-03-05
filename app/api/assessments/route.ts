@@ -6,49 +6,61 @@ import { desc, eq } from 'drizzle-orm';
 // GET /api/assessments - list all assessments
 // GET /api/assessments?id=<uuid> - get a single assessment
 export async function GET(request: NextRequest) {
-  const id = request.nextUrl.searchParams.get('id');
+  try {
+    const id = request.nextUrl.searchParams.get('id');
 
-  if (id) {
-    const [assessment] = await getDb()
-      .select()
-      .from(assessments)
-      .where(eq(assessments.id, id))
-      .limit(1);
+    if (id) {
+      const [assessment] = await getDb()
+        .select()
+        .from(assessments)
+        .where(eq(assessments.id, id))
+        .limit(1);
 
-    if (!assessment) {
-      return NextResponse.json({ error: 'Assessment not found' }, { status: 404 });
+      if (!assessment) {
+        return NextResponse.json({ error: 'Assessment not found' }, { status: 404 });
+      }
+      return NextResponse.json(assessment);
     }
-    return NextResponse.json(assessment);
+
+    const all = await getDb()
+      .select({
+        id: assessments.id,
+        companyName: assessments.companyName,
+        createdAt: assessments.createdAt,
+        updatedAt: assessments.updatedAt,
+      })
+      .from(assessments)
+      .orderBy(desc(assessments.updatedAt));
+
+    return NextResponse.json(all);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('GET /api/assessments error:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  const all = await getDb()
-    .select({
-      id: assessments.id,
-      companyName: assessments.companyName,
-      createdAt: assessments.createdAt,
-      updatedAt: assessments.updatedAt,
-    })
-    .from(assessments)
-    .orderBy(desc(assessments.updatedAt));
-
-  return NextResponse.json(all);
 }
 
 // POST /api/assessments - create a new assessment
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  try {
+    const body = await request.json();
 
-  const [created] = await getDb()
-    .insert(assessments)
-    .values({
-      companyName: body.companyName || '',
-      profile: body.profile || {},
-      workflowSelections: body.workflowSelections || {},
-      customWorkflows: body.customWorkflows || {},
-    })
-    .returning();
+    const [created] = await getDb()
+      .insert(assessments)
+      .values({
+        companyName: body.companyName || '',
+        profile: body.profile || {},
+        workflowSelections: body.workflowSelections || {},
+        customWorkflows: body.customWorkflows || {},
+      })
+      .returning();
 
-  return NextResponse.json(created, { status: 201 });
+    return NextResponse.json(created, { status: 201 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('POST /api/assessments error:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 // PUT /api/assessments - update an existing assessment
