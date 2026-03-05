@@ -15,6 +15,8 @@ interface WorkflowPanelProps {
     name: string; who: string; systems: string; how: string;
     pain: string; hrs: string; err: string; opt: string;
   }) => void;
+  onUpdateSub: (cadence: string, workflowId: string, subId: string, field: string, val: string) => void;
+  onAddSub: (cadence: string, workflowId: string, data: { name: string; how: string; pain: string }) => void;
 }
 
 const EMPTY_ROW = { name: '', who: '', systems: '', how: '', pain: '', hrs: '', err: '', opt: '' };
@@ -27,6 +29,8 @@ export default function WorkflowPanel({
   onToggleWish,
   onUpdateMetric,
   onAddWorkflow,
+  onUpdateSub,
+  onAddSub,
 }: WorkflowPanelProps) {
   const allWorkflows = [...cadence.workflows, ...customWorkflows];
   const [draft, setDraft] = useState({ ...EMPTY_ROW });
@@ -95,6 +99,8 @@ export default function WorkflowPanel({
               onToggleDo={onToggleDo}
               onToggleWish={onToggleWish}
               onUpdateMetric={onUpdateMetric}
+              onUpdateSub={onUpdateSub}
+              onAddSub={onAddSub}
             />
           ))}
           {/* Inline empty row for adding custom workflows */}

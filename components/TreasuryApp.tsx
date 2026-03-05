@@ -157,6 +157,41 @@ export default function TreasuryApp() {
     }));
   }, []);
 
+  const updateSub = useCallback((cadence: string, workflowId: string, subId: string, field: string, val: string) => {
+    const updateSubs = (w: Workflow) => {
+      if (w.id !== workflowId) return w;
+      return { ...w, subs: w.subs.map(s => s.id === subId ? { ...s, [field]: val } : s) };
+    };
+    setWorkflowData(prev => {
+      const next = { ...prev };
+      next[cadence] = { ...next[cadence], workflows: next[cadence].workflows.map(updateSubs) };
+      return next;
+    });
+    setCustomWorkflows(prev => {
+      const arr = prev[cadence];
+      if (!arr) return prev;
+      return { ...prev, [cadence]: arr.map(updateSubs) };
+    });
+  }, []);
+
+  const addSub = useCallback((cadence: string, workflowId: string, data: { name: string; how: string; pain: string }) => {
+    const newSub = { id: 'sub_' + Date.now(), name: data.name, how: data.how, pain: data.pain };
+    const appendSub = (w: Workflow) => {
+      if (w.id !== workflowId) return w;
+      return { ...w, subs: [...w.subs, newSub] };
+    };
+    setWorkflowData(prev => {
+      const next = { ...prev };
+      next[cadence] = { ...next[cadence], workflows: next[cadence].workflows.map(appendSub) };
+      return next;
+    });
+    setCustomWorkflows(prev => {
+      const arr = prev[cadence];
+      if (!arr) return prev;
+      return { ...prev, [cadence]: arr.map(appendSub) };
+    });
+  }, []);
+
   const resetAll = useCallback(() => {
     if (!confirm('Reset all selections and custom values? This cannot be undone.')) return;
     // Try API first, fall back to static data
@@ -259,6 +294,8 @@ export default function TreasuryApp() {
               onToggleWish={toggleWish}
               onUpdateMetric={updateMetric}
               onAddWorkflow={addWorkflow}
+              onUpdateSub={updateSub}
+              onAddSub={addSub}
             />
           </div>
         ))}
