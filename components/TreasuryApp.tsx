@@ -38,6 +38,7 @@ export default function TreasuryApp() {
   const [agents, setAgents] = useState<Agent[]>(AGENT_MAP);
   const [customWorkflows, setCustomWorkflows] = useState<Record<string, Workflow[]>>({});
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const profileRef = useRef<CompanyProfileHandle>(null);
 
   // Try to fetch from API; if DB is empty or unavailable, keep static fallback
@@ -174,48 +175,54 @@ export default function TreasuryApp() {
     setCustomWorkflows({});
   }, []);
 
-  const exportJSON = useCallback(() => {
-    const profile = profileRef.current?.getProfile() || {
-      company: '', revenue: '', industry: '', entities: '', countries: '',
-      currencies: [], teamSize: '', numBanks: '', banks: [], numAccounts: '',
-      erp: '', tms: '', otherSystems: [], paymentVolume: '', facilities: '',
-    };
+  const submitAssessment = useCallback(async () => {
+    setSubmitting(true);
+    try {
+      const profile = profileRef.current?.getProfile() || {
+        company: '', revenue: '', industry: '', entities: '', countries: '',
+        currencies: [], teamSize: '', numBanks: '', banks: [], numAccounts: '',
+        erp: '', tms: '', otherSystems: [], paymentVolume: '', facilities: '',
+      };
 
-    const workflows: Record<string, unknown[]> = {};
-    Object.keys(workflowData).forEach(cadence => {
-      const all = [...workflowData[cadence].workflows, ...(customWorkflows[cadence] || [])];
-      workflows[cadence] = all.map(w => ({
-        id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
-        hrs: w.hrs, errCost: w.err, optimization: w.opt,
-        how: w.how, pain: w.pain,
-        custom: w.custom || false,
-        subs: (w.subs || []).map(s => ({ id: s.id, name: s.name })),
-      }));
-    });
+      const wfSelections: Record<string, unknown[]> = {};
+      Object.keys(workflowData).forEach(cadence => {
+        wfSelections[cadence] = workflowData[cadence].workflows.map(w => ({
+          id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
+          hrs: w.hrs, errCost: w.err, optimization: w.opt,
+          how: w.how, pain: w.pain,
+          subs: (w.subs || []).map(s => ({ id: s.id, name: s.name })),
+        }));
+      });
 
-    const allSelected: string[] = [];
-    Object.values(workflows).flat().forEach((w: any) => {
-      if (w.doToday || w.wishToDo) allSelected.push(w.id);
-    });
-    const filteredAgents = agents
-      .filter(a => a.workflows.some(wid => allSelected.includes(wid)))
-      .map(a => ({ name: a.name, desc: a.desc, impact: a.impact }));
+      const customWfs: Record<string, unknown[]> = {};
+      Object.keys(customWorkflows).forEach(cadence => {
+        customWfs[cadence] = (customWorkflows[cadence] || []).map(w => ({
+          id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
+          hrs: w.hrs, errCost: w.err, optimization: w.opt,
+          how: w.how, pain: w.pain, custom: true, subs: [],
+        }));
+      });
 
-    const data = {
-      exportDate: new Date().toISOString(),
-      profile,
-      workflows,
-      recommendedAgents: filteredAgents,
-    };
+      const res = await fetch('/api/assessments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: profile.company || '',
+          profile,
+          workflowSelections: wfSelections,
+          customWorkflows: customWfs,
+        }),
+      });
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(profile.company || 'company').replace(/\s+/g, '-').toLowerCase()}-treasury-assessment.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [workflowData, customWorkflows, agents]);
+      if (!res.ok) throw new Error('Failed to submit');
+      alert('Assessment submitted successfully!');
+    } catch (err) {
+      alert('Error submitting assessment. Please try again.');
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [workflowData, customWorkflows]);
 
   const printSummary = useCallback(() => {
     window.print();
@@ -231,7 +238,8 @@ export default function TreasuryApp() {
     <>
       <TopBar
         onReset={resetAll}
-        onExport={exportJSON}
+        onSubmit={submitAssessment}
+        submitting={submitting}
         onViewRecommendations={() => switchTab('summary')}
       />
       <div className="main-content">
@@ -261,7 +269,8 @@ export default function TreasuryApp() {
             customWorkflows={customWorkflows}
             agents={agents}
             companyName={companyName}
-            onExport={exportJSON}
+            onSubmit={submitAssessment}
+            submitting={submitting}
             onPrint={printSummary}
           />
         </div>
