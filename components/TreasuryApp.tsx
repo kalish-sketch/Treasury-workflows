@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { WORKFLOW_DATA } from '@/data/workflows';
 import { AGENT_MAP } from '@/data/agents';
-import { WorkflowDataMap, Workflow } from '@/types';
+import { WorkflowDataMap, Workflow, Agent } from '@/types';
 import TopBar from './TopBar';
 import TabNav from './TabNav';
 import CompanyProfile, { CompanyProfileHandle } from './CompanyProfile';
@@ -14,11 +14,60 @@ function deepCloneWorkflowData(): WorkflowDataMap {
   return JSON.parse(JSON.stringify(WORKFLOW_DATA));
 }
 
+function addDefaultsToWorkflowData(raw: Record<string, any>): WorkflowDataMap {
+  const result: WorkflowDataMap = {};
+  for (const [key, cadence] of Object.entries(raw)) {
+    result[key] = {
+      label: cadence.label,
+      tagline: cadence.tagline,
+      color: cadence.color,
+      workflows: cadence.workflows.map((w: any) => ({
+        ...w,
+        doToday: false,
+        wishToDo: false,
+        subs: w.subs || [],
+      })),
+    };
+  }
+  return result;
+}
+
 export default function TreasuryApp() {
   const [activeTab, setActiveTab] = useState('profile');
   const [workflowData, setWorkflowData] = useState<WorkflowDataMap>(deepCloneWorkflowData);
+  const [agents, setAgents] = useState<Agent[]>(AGENT_MAP);
   const [customWorkflows, setCustomWorkflows] = useState<Record<string, Workflow[]>>({});
+  const [loading, setLoading] = useState(true);
   const profileRef = useRef<CompanyProfileHandle>(null);
+
+  // Try to fetch from API; if DB is empty or unavailable, keep static fallback
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [wfRes, agRes] = await Promise.all([
+          fetch('/api/workflows'),
+          fetch('/api/agents'),
+        ]);
+        if (wfRes.ok) {
+          const raw = await wfRes.json();
+          if (Object.keys(raw).length > 0) {
+            setWorkflowData(addDefaultsToWorkflowData(raw));
+          }
+        }
+        if (agRes.ok) {
+          const agentData = await agRes.json();
+          if (agentData.length > 0) {
+            setAgents(agentData);
+          }
+        }
+      } catch (err) {
+        console.error('API unavailable, using static data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
   const switchTab = useCallback((tabId: string) => {
     setActiveTab(tabId);
@@ -109,7 +158,19 @@ export default function TreasuryApp() {
 
   const resetAll = useCallback(() => {
     if (!confirm('Reset all selections and custom values? This cannot be undone.')) return;
-    setWorkflowData(deepCloneWorkflowData());
+    // Try API first, fall back to static data
+    fetch('/api/workflows')
+      .then(r => r.json())
+      .then(raw => {
+        if (Object.keys(raw).length > 0) {
+          setWorkflowData(addDefaultsToWorkflowData(raw));
+        } else {
+          setWorkflowData(deepCloneWorkflowData());
+        }
+      })
+      .catch(() => {
+        setWorkflowData(deepCloneWorkflowData());
+      });
     setCustomWorkflows({});
   }, []);
 
@@ -136,7 +197,7 @@ export default function TreasuryApp() {
     Object.values(workflows).flat().forEach((w: any) => {
       if (w.doToday || w.wishToDo) allSelected.push(w.id);
     });
-    const agents = AGENT_MAP
+    const filteredAgents = agents
       .filter(a => a.workflows.some(wid => allSelected.includes(wid)))
       .map(a => ({ name: a.name, desc: a.desc, impact: a.impact }));
 
@@ -144,7 +205,7 @@ export default function TreasuryApp() {
       exportDate: new Date().toISOString(),
       profile,
       workflows,
-      recommendedAgents: agents,
+      recommendedAgents: filteredAgents,
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -154,7 +215,7 @@ export default function TreasuryApp() {
     a.download = `${(profile.company || 'company').replace(/\s+/g, '-').toLowerCase()}-treasury-assessment.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [workflowData, customWorkflows]);
+  }, [workflowData, customWorkflows, agents]);
 
   const printSummary = useCallback(() => {
     window.print();
@@ -164,7 +225,7 @@ export default function TreasuryApp() {
     return profileRef.current?.getProfile().company || 'Your Company';
   }, [activeTab]);
 
-  const cadenceKeys = ['daily', 'weekly', 'monthly', 'quarterly', 'annual'];
+  const cadenceKeys = Object.keys(workflowData);
 
   return (
     <>
@@ -198,6 +259,7 @@ export default function TreasuryApp() {
           <SummaryPanel
             workflowData={workflowData}
             customWorkflows={customWorkflows}
+            agents={agents}
             companyName={companyName}
             onExport={exportJSON}
             onPrint={printSummary}

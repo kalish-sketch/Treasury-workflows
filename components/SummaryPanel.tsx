@@ -1,9 +1,9 @@
-import { WorkflowDataMap, Workflow } from '@/types';
-import { AGENT_MAP } from '@/data/agents';
+import { WorkflowDataMap, Workflow, Agent } from '@/types';
 
 interface SummaryPanelProps {
   workflowData: WorkflowDataMap;
   customWorkflows: Record<string, Workflow[]>;
+  agents: Agent[];
   companyName: string;
   onExport: () => void;
   onPrint: () => void;
@@ -52,6 +52,7 @@ function emptyBucket(): BucketMetrics {
 export default function SummaryPanel({
   workflowData,
   customWorkflows,
+  agents,
   companyName,
   onExport,
   onPrint,
@@ -82,7 +83,7 @@ export default function SummaryPanel({
   });
 
   const allSelected = [...new Set([...doBucket.ids, ...wishBucket.ids])];
-  const relevantAgents = AGENT_MAP.filter(a =>
+  const relevantAgents = agents.filter(a =>
     a.workflows.some(wid => allSelected.includes(wid))
   );
 
