@@ -74,7 +74,11 @@ interface WorkflowEntry {
   optimization: string;
   who: string;
   systems: string;
+  how: string;
+  pain: string;
   cadences: string[];
+  custom: boolean;
+  subs: { id: string; name: string }[];
 }
 
 function collectAllWorkflows(a: AssessmentFull) {
@@ -98,7 +102,11 @@ function collectAllWorkflows(a: AssessmentFull) {
         optimization: w.optimization || w.opt || '',
         who: stripHtmlTags(w.who || ''),
         systems: stripHtmlTags(w.systems || ''),
+        how: w.how || '',
+        pain: w.pain || '',
         cadences: w.cadences || [cadence],
+        custom: !!w.custom,
+        subs: w.subs || [],
       };
       all.push({ cadence, w: entry });
 
@@ -126,19 +134,11 @@ function collectAllWorkflows(a: AssessmentFull) {
   };
 }
 
-function flattenAssessmentToRow(a: AssessmentFull) {
+function flattenAssessmentToRows(a: AssessmentFull): Record<string, string>[] {
   const p = a.profile || {};
-  const stats = collectAllWorkflows(a);
+  const rows: Record<string, string>[] = [];
 
-  const cadenceWorkflows: Record<string, WorkflowEntry[]> = {};
-  for (const cadence of CADENCE_ORDER) {
-    cadenceWorkflows[cadence] = stats.all.filter(e => e.cadence === cadence).map(e => e.w);
-  }
-
-  // Multi-frequency workflows
-  const multiFreq = stats.all.filter(e => e.w.cadences.length > 1);
-
-  const row: Record<string, string> = {
+  const profileCols: Record<string, string> = {
     'Company': p.company || a.companyName || '',
     'Industry': p.industry || '',
     'Revenue': p.revenue || '',
@@ -153,41 +153,63 @@ function flattenAssessmentToRow(a: AssessmentFull) {
     'TMS': p.tms || '',
     'Other Systems': Array.isArray(p.otherSystems) ? p.otherSystems.join('; ') : '',
     'Payment Volume': p.paymentVolume || '',
-    'Facilities': p.facilities || '',
-
-    // Summary metrics
-    'Total Workflows': String(stats.totalCount),
-    'Workflows Do Today': String(stats.doCount),
-    'Workflows Wish To Do': String(stats.wishCount),
-    'Workflows Not Selected': String(stats.notSelectedCount),
-    'Do Today Names': stats.doNames.join('; '),
-    'Wish To Do Names': stats.wishNames.join('; '),
-    'Not Selected Names': stats.notSelectedNames.join('; '),
-    'Total Hrs/Mo (Do Today)': stats.doHrs > 0 ? String(Math.round(stats.doHrs)) : '',
-    'Total Hrs/Mo (Wish)': stats.wishHrs > 0 ? String(Math.round(stats.wishHrs)) : '',
-    'Error Cost Exposure (Do Today)': stats.doErr > 0 ? formatCompact(stats.doErr) : '',
-    'Optimization Potential (Do Today)': stats.doOpt > 0 ? formatCompact(stats.doOpt) : '',
+    'Credit Facilities': p.facilities || '',
   };
 
-  // Add all workflows per cadence with their details
+  const submitted = new Date(a.createdAt).toLocaleDateString();
+
   for (const cadence of CADENCE_ORDER) {
-    const label = cadence.charAt(0).toUpperCase() + cadence.slice(1);
-    const wfs = cadenceWorkflows[cadence];
-    row[`${label} Workflows`] = wfs.map(w => w.name).join('; ');
-    row[`${label} Do Today`] = wfs.filter(w => w.doToday).map(w => w.name).join('; ');
-    row[`${label} Wish To Do`] = wfs.filter(w => w.wishToDo).map(w => w.name).join('; ');
-    row[`${label} Hrs/Mo`] = wfs.map(w => `${w.name}: ${w.hrs || '—'}`).join('; ');
-    row[`${label} Error Cost`] = wfs.map(w => `${w.name}: ${w.errCost || '—'}`).join('; ');
-    row[`${label} Optimization`] = wfs.map(w => `${w.name}: ${w.optimization || '—'}`).join('; ');
+    const wfs = (a.workflowSelections || {})[cadence] || [];
+    const customs = (a.customWorkflows || {})[cadence] || [];
+    for (const w of [...(wfs as any[]), ...(customs as any[])]) {
+      // Parent workflow row
+      rows.push({
+        ...profileCols,
+        'Cadence': CADENCE_LABELS[cadence] || cadence,
+        'Type': 'Workflow',
+        'Parent Workflow': '',
+        'Workflow': w.name || '',
+        'Do Today': w.doToday ? 'Yes' : '',
+        'Wish To Do': w.wishToDo ? 'Yes' : '',
+        'Who': stripHtmlTags(w.who || ''),
+        'Systems': stripHtmlTags(w.systems || ''),
+        'How It Actually Works': stripHtmlTags(w.how || ''),
+        'Pain Points': stripHtmlTags(w.pain || ''),
+        'Hrs/Mo': w.hrs || '',
+        'Error Cost': w.errCost || w.err || '',
+        '$ Optimization': w.optimization || w.opt || '',
+        'Frequency': (w.cadences || [cadence]).map((c: string) => CADENCE_LABELS[c] || c).join(', '),
+        'Custom': w.custom ? 'Yes' : '',
+        'Submitted': submitted,
+      });
+
+      // Sub-workflow rows
+      const subs = w.subs || [];
+      for (const s of subs) {
+        rows.push({
+          ...profileCols,
+          'Cadence': CADENCE_LABELS[cadence] || cadence,
+          'Type': 'Sub-Workflow',
+          'Parent Workflow': w.name || '',
+          'Workflow': `\u21B3 ${s.name || ''}`,
+          'Do Today': s.doToday ? 'Yes' : '',
+          'Wish To Do': s.wishToDo ? 'Yes' : '',
+          'Who': '',
+          'Systems': '',
+          'How It Actually Works': stripHtmlTags(s.how || ''),
+          'Pain Points': stripHtmlTags(s.pain || ''),
+          'Hrs/Mo': '',
+          'Error Cost': '',
+          '$ Optimization': '',
+          'Frequency': '',
+          'Custom': '',
+          'Submitted': submitted,
+        });
+      }
+    }
   }
 
-  // Multi-frequency assignments
-  row['Multi-Frequency Workflows'] = multiFreq.map(e =>
-    `${e.w.name} (${e.w.cadences.map(c => CADENCE_LABELS[c] || c).join(', ')})`
-  ).join('; ');
-
-  row['Submitted'] = new Date(a.createdAt).toLocaleDateString();
-  return row;
+  return rows;
 }
 
 function generateCSV(rows: Record<string, string>[]): string {
@@ -201,7 +223,7 @@ function generateCSV(rows: Record<string, string>[]): string {
 }
 
 function downloadCSV(content: string, filename: string) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -431,8 +453,8 @@ export default function BackofficePage() {
       const res = await fetch(`/api/assessments?id=${id}`);
       if (!res.ok) return;
       const full: AssessmentFull = await res.json();
-      const row = flattenAssessmentToRow(full);
-      const csv = generateCSV([row]);
+      const rows = flattenAssessmentToRows(full);
+      const csv = generateCSV(rows);
       downloadCSV(csv, `${(full.companyName || 'assessment').replace(/\s+/g, '-').toLowerCase()}.csv`);
     } catch (err) {
       console.error('Export failed:', err);
@@ -447,7 +469,7 @@ export default function BackofficePage() {
           fetch(`/api/assessments?id=${a.id}`).then(r => r.json())
         )
       );
-      const rows = details.map(flattenAssessmentToRow);
+      const rows = details.flatMap(flattenAssessmentToRows);
       const csv = generateCSV(rows);
       downloadCSV(csv, `all-assessments-${new Date().toISOString().slice(0, 10)}.csv`);
     } catch (err) {

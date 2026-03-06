@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { assessments } from '@/lib/schema';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 
 // GET /api/assessments - list all assessments
 // GET /api/assessments?id=<uuid> - get a single assessment
@@ -40,15 +40,43 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/assessments - create a new assessment
+// POST /api/assessments - create or update (upsert by companyName)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const companyName = (body.companyName || '').trim();
 
+    // Check for existing assessment with same company name (case-insensitive)
+    const existing = companyName
+      ? await getDb()
+          .select({ id: assessments.id })
+          .from(assessments)
+          .where(sql`lower(${assessments.companyName}) = lower(${companyName})`)
+          .limit(1)
+      : [];
+
+    if (existing.length > 0) {
+      // Update existing assessment
+      const [updated] = await getDb()
+        .update(assessments)
+        .set({
+          companyName,
+          profile: body.profile || {},
+          workflowSelections: body.workflowSelections || {},
+          customWorkflows: body.customWorkflows || {},
+          updatedAt: new Date(),
+        })
+        .where(eq(assessments.id, existing[0].id))
+        .returning();
+
+      return NextResponse.json(updated);
+    }
+
+    // Create new assessment
     const [created] = await getDb()
       .insert(assessments)
       .values({
-        companyName: body.companyName || '',
+        companyName,
         profile: body.profile || {},
         workflowSelections: body.workflowSelections || {},
         customWorkflows: body.customWorkflows || {},

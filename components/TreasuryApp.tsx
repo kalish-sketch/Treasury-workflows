@@ -284,7 +284,7 @@ export default function TreasuryApp() {
         hrs: w.hrs, errCost: w.err, optimization: w.opt,
         how: w.how, pain: w.pain, who: w.who, systems: w.systems,
         cadences: w.cadences,
-        subs: (w.subs || []).map(s => ({ id: s.id, name: s.name })),
+        subs: (w.subs || []).map(s => ({ id: s.id, name: s.name, how: s.how, pain: s.pain, doToday: s.doToday, wishToDo: s.wishToDo })),
       }));
     });
 
