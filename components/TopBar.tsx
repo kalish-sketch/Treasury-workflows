@@ -10,10 +10,7 @@ interface TopBarProps {
 export default function TopBar({ onReset, onSave, saving, onSubmit, submitting, onViewRecommendations }: TopBarProps) {
   return (
     <div className="top-bar">
-      <div className="top-bar-brand">
-        <img src="/nilus-logo.svg" alt="Nilus" className="nilus-logo" />
-        <h1>Treasurer Workflows — The World Before Nilus</h1>
-      </div>
+      <h1>Treasurer Workflows — The World Before Nilus</h1>
       <div className="bar-actions">
         <a href="https://www.nilus.com" target="_blank" rel="noopener noreferrer" className="btn btn-link">nilus.com</a>
         <a href="https://academy.nilus.com/" target="_blank" rel="noopener noreferrer" className="btn btn-link">Academy</a>
