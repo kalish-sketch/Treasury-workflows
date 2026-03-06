@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Workflow } from '@/types';
 import SubWorkflowRow from './SubWorkflowRow';
+import WorkflowTagCell from './WorkflowTagCell';
 
 interface WorkflowRowProps {
   workflow: Workflow;
@@ -86,8 +87,20 @@ export default function WorkflowRow({
             </div>
           </div>
         </td>
-        <td dangerouslySetInnerHTML={{ __html: w.who }} />
-        <td dangerouslySetInnerHTML={{ __html: w.systems }} />
+        <td>
+          <WorkflowTagCell
+            htmlContent={w.who}
+            type="who"
+            onChange={(html) => onUpdateMetric(cadenceKey, w.id, 'who', html)}
+          />
+        </td>
+        <td>
+          <WorkflowTagCell
+            htmlContent={w.systems}
+            type="systems"
+            onChange={(html) => onUpdateMetric(cadenceKey, w.id, 'systems', html)}
+          />
+        </td>
         <td className="editable-text-cell">
           <textarea
             className="inline-textarea"

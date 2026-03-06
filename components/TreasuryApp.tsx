@@ -8,6 +8,7 @@ import TopBar from './TopBar';
 import TabNav from './TabNav';
 import CompanyProfile, { CompanyProfileHandle } from './CompanyProfile';
 import WorkflowPanel from './WorkflowPanel';
+import AllWorkflowsPanel from './AllWorkflowsPanel';
 import SummaryPanel from './SummaryPanel';
 
 function deepCloneWorkflowData(): WorkflowDataMap {
@@ -232,6 +233,21 @@ export default function TreasuryApp() {
     });
   }, []);
 
+  const updateCadences = useCallback((cadence: string, id: string, cadences: string[]) => {
+    setWorkflowData(prev => {
+      const next = { ...prev };
+      next[cadence] = { ...next[cadence], workflows: next[cadence].workflows.map(w =>
+        w.id === id ? { ...w, cadences } : w
+      )};
+      return next;
+    });
+    setCustomWorkflows(prev => {
+      const arr = prev[cadence];
+      if (!arr) return prev;
+      return { ...prev, [cadence]: arr.map(w => w.id === id ? { ...w, cadences } : w) };
+    });
+  }, []);
+
   const resetAll = useCallback(() => {
     if (!confirm('Reset all selections and custom values? This cannot be undone.')) return;
     // Try API first, fall back to static data
@@ -264,7 +280,8 @@ export default function TreasuryApp() {
         wfSelections[cadence] = workflowData[cadence].workflows.map(w => ({
           id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
           hrs: w.hrs, errCost: w.err, optimization: w.opt,
-          how: w.how, pain: w.pain,
+          how: w.how, pain: w.pain, who: w.who, systems: w.systems,
+          cadences: w.cadences,
           subs: (w.subs || []).map(s => ({ id: s.id, name: s.name })),
         }));
       });
@@ -274,7 +291,8 @@ export default function TreasuryApp() {
         customWfs[cadence] = (customWorkflows[cadence] || []).map(w => ({
           id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
           hrs: w.hrs, errCost: w.err, optimization: w.opt,
-          how: w.how, pain: w.pain, custom: true, subs: [],
+          how: w.how, pain: w.pain, who: w.who, systems: w.systems,
+          cadences: w.cadences, custom: true, subs: [],
         }));
       });
 
@@ -345,6 +363,17 @@ export default function TreasuryApp() {
             />
           </div>
         ))}
+
+        <div className="tab-panel" style={{ display: activeTab === 'all' ? 'block' : 'none' }}>
+          <AllWorkflowsPanel
+            workflowData={workflowData}
+            customWorkflows={customWorkflows}
+            onToggleDo={toggleDo}
+            onToggleWish={toggleWish}
+            onUpdateMetric={updateMetric}
+            onUpdateCadences={updateCadences}
+          />
+        </div>
 
         <div className="tab-panel" style={{ display: activeTab === 'summary' ? 'block' : 'none' }}>
           <SummaryPanel

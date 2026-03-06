@@ -22,6 +22,7 @@ export interface Workflow {
   wishToDo: boolean;
   subs: SubWorkflow[];
   custom?: boolean;
+  cadences?: string[]; // multi-frequency: which cadences this workflow applies to
 }
 
 export interface CadenceData {

@@ -10,6 +10,7 @@ const TABS = [
   { id: 'monthly', label: 'Monthly' },
   { id: 'quarterly', label: 'Quarterly' },
   { id: 'annual', label: 'Annual' },
+  { id: 'all', label: 'All Workflows' },
   { id: 'summary', label: 'Summary & Agents' },
 ];
 
