@@ -1,19 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" fill="none">
-  <!-- Nilus brand mark (from nilus.com) scaled to fit 48px height -->
-  <g transform="translate(0, -2) scale(0.62)" fill="white">
-    <!-- Top tier - right -->
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M47.604 52.405C47.604 59.2 53.349 64.709 60.436 64.709V72C49.149 72 40 63.227 40 52.405H47.604Z"/>
-    <!-- Top tier - left -->
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M32.396 52.405C32.396 59.2 26.651 64.709 19.564 64.709V72C30.851 72 40 63.227 40 52.405H32.396Z"/>
-    <!-- Middle tier - right -->
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M47.604 27.342C47.604 41.13 59.463 52.405 74.218 52.405V59.696C55.377 59.696 40 45.265 40 27.342H47.604Z"/>
-    <!-- Middle tier - left -->
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M32.396 27.341C32.396 41.183 20.693 52.405 6.258 52.405V59.696C24.893 59.696 40 45.211 40 27.342L32.396 27.341Z"/>
-    <!-- Bottom tier - right -->
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M47.604 0C47.604 21.392 65.69 38.734 88 38.734V46.025C61.49 46.025 40 25.419 40 0H47.604Z"/>
-    <!-- Bottom tier - left -->
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M32.396 0C32.396 21.392 14.31 38.734 -8 38.734L-8 46.025C18.51 46.025 40 25.419 40 0H32.396Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" fill="white">
+  <!-- Nilus logo: upward chevron + stem + 3 symmetric wave pairs -->
+  <g transform="translate(2, 1)">
+    <!-- Upward chevron -->
+    <path d="M18,1 L12.5,8.5 L15,8.5 L18,4 L21,8.5 L23.5,8.5 Z" />
+    <!-- Vertical stem -->
+    <rect x="16.8" y="9" width="2.4" height="5" rx="0.4"/>
+    <!-- Wave tier 1 (narrow) -->
+    <path d="M18,15 Q12,15 8,19.5" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round"/>
+    <path d="M18,15 Q24,15 28,19.5" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round"/>
+    <!-- Wave tier 2 (medium) -->
+    <path d="M18,20.5 Q10,20.5 4,26.5" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round"/>
+    <path d="M18,20.5 Q26,20.5 32,26.5" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round"/>
+    <!-- Wave tier 3 (wide) -->
+    <path d="M18,26 Q8,26 0,33.5" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round"/>
+    <path d="M18,26 Q28,26 36,33.5" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round"/>
   </g>
   <!-- "nilus" wordmark -->
-  <text x="62" y="33" fill="white" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" font-size="26" font-weight="300" letter-spacing="2">nilus</text>
+  <text x="50" y="34" font-family="'Nunito', 'Rubik', 'Segoe UI', system-ui, sans-serif" font-size="28" font-weight="500" letter-spacing="1.5">nilus</text>
 </svg>
