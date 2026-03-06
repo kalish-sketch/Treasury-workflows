@@ -153,32 +153,59 @@ function flattenAssessmentToRows(a: AssessmentFull): Record<string, string>[] {
     'TMS': p.tms || '',
     'Other Systems': Array.isArray(p.otherSystems) ? p.otherSystems.join('; ') : '',
     'Payment Volume': p.paymentVolume || '',
-    'Facilities': p.facilities || '',
+    'Credit Facilities': p.facilities || '',
   };
+
+  const submitted = new Date(a.createdAt).toLocaleDateString();
 
   for (const cadence of CADENCE_ORDER) {
     const wfs = (a.workflowSelections || {})[cadence] || [];
     const customs = (a.customWorkflows || {})[cadence] || [];
     for (const w of [...(wfs as any[]), ...(customs as any[])]) {
-      const row: Record<string, string> = {
+      // Parent workflow row
+      rows.push({
         ...profileCols,
         'Cadence': CADENCE_LABELS[cadence] || cadence,
+        'Type': 'Workflow',
+        'Parent Workflow': '',
         'Workflow': w.name || '',
-        'Custom': w.custom ? 'Yes' : '',
         'Do Today': w.doToday ? 'Yes' : '',
         'Wish To Do': w.wishToDo ? 'Yes' : '',
         'Who': stripHtmlTags(w.who || ''),
         'Systems': stripHtmlTags(w.systems || ''),
-        'How It Works': stripHtmlTags(w.how || ''),
+        'How It Actually Works': stripHtmlTags(w.how || ''),
         'Pain Points': stripHtmlTags(w.pain || ''),
         'Hrs/Mo': w.hrs || '',
         'Error Cost': w.errCost || w.err || '',
         '$ Optimization': w.optimization || w.opt || '',
-        'Assigned Cadences': (w.cadences || [cadence]).map((c: string) => CADENCE_LABELS[c] || c).join(', '),
-        'Sub-Workflows': (w.subs || []).map((s: any) => s.name).join('; '),
-        'Submitted': new Date(a.createdAt).toLocaleDateString(),
-      };
-      rows.push(row);
+        'Frequency': (w.cadences || [cadence]).map((c: string) => CADENCE_LABELS[c] || c).join(', '),
+        'Custom': w.custom ? 'Yes' : '',
+        'Submitted': submitted,
+      });
+
+      // Sub-workflow rows
+      const subs = w.subs || [];
+      for (const s of subs) {
+        rows.push({
+          ...profileCols,
+          'Cadence': CADENCE_LABELS[cadence] || cadence,
+          'Type': 'Sub-Workflow',
+          'Parent Workflow': w.name || '',
+          'Workflow': `\u21B3 ${s.name || ''}`,
+          'Do Today': s.doToday ? 'Yes' : '',
+          'Wish To Do': s.wishToDo ? 'Yes' : '',
+          'Who': '',
+          'Systems': '',
+          'How It Actually Works': stripHtmlTags(s.how || ''),
+          'Pain Points': stripHtmlTags(s.pain || ''),
+          'Hrs/Mo': '',
+          'Error Cost': '',
+          '$ Optimization': '',
+          'Frequency': '',
+          'Custom': '',
+          'Submitted': submitted,
+        });
+      }
     }
   }
 
@@ -196,7 +223,7 @@ function generateCSV(rows: Record<string, string>[]): string {
 }
 
 function downloadCSV(content: string, filename: string) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
