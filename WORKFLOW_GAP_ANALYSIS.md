@@ -256,3 +256,102 @@ The gaps are prioritized below as **Critical** (regulatory/fraud risk), **High**
 
 **Phase 4 (As Needed):** M&A Integration (#10) + BCP (#11) + Shared Services (#12)
 - Event-driven or scale-dependent
+
+---
+
+## Key Industry Data Points Supporting This Analysis
+
+- **Payment Fraud:** AFP 2025 survey: 79% of organizations were targeted by payment fraud. ACH credits have now surpassed wires as the top BEC target. Vendor impersonation fraud rose to 45% of respondents (up from 34% prior year). AI-generated phishing emails now bypass traditional red flags.
+- **EBAM:** SWIFT CGI-MP working group has published 15 standardized ISO 20022 eBAM message types (acmt series). Most corporates still rely on wet-ink signatures and paper forms for account management. Average account opening takes 2–8 weeks depending on jurisdiction.
+- **Supply Chain Finance:** SCF market growing 15–20% annually. Dynamic discounting yields average 10–12% APR annualized, significantly outperforming short-term cash investments. Global labeled sustainable bond issuance reached $1.1 trillion in 2024.
+- **Real-Time Treasury:** EACT Treasury Survey 2025 ranks real-time reporting as treasurers' top priority. Global open banking market reached $28–32 billion in 2024, growing at 19–28% annually. Instant payments are irrevocable, requiring pre-authorization fraud screening.
+- **SOX Controls:** Auditors require proof that controls "operated," not just that they "exist." Manual evidence collection is the #1 bottleneck in treasury audit support.
+- **Interest Rate Risk:** LIBOR fully sunset; SOFR transition compliance is mandatory. Swap restructuring requires careful breakage cost analysis.
+- **M&A:** Treasury integration typically takes 12–24 months. Setup costs for payment factory centralization recovered in ~1.5 years on average.
+- **BCP:** NOAA predicts above-normal hurricane activity; ransomware attacks increasing in frequency. Companies without tested BCPs couldn't make payments for days during COVID.
+- **ESG:** European SLL/SLB issuance dropped significantly in Q1 2025 but remains a $700B+ global market. US policy headwinds creating regional divergence.
+
+---
+
+## Sources & References
+
+### EBAM & Bank Account Management
+- [TIS Payments — Treasury Best Practices for BAM](https://tispayments.com/blog/reviewing-treasury-best-practices-for-bank-account-management-in-2023-2024/)
+- [CTMfile — eBAM Background](https://ctmfile.com/sections/background/electronic-bank-account-management-ebam)
+- [Nomentia — Is eBAM Coming?](https://www.nomentia.com/blog/is-the-rise-of-electronic-bank-account-management-coming)
+- [SWIFT CGI-MP — eBAM Best Practice Guide (PDF)](https://www.swift.com/sites/default/files/files/cgi-mp-wg4-best-practice-guide-to-ebam_26042023.pdf)
+- [Omikron — EBAM Digital Solutions](https://www.omikron.de/en/solutions/in-focus/ebam/)
+
+### Payment Fraud Detection
+- [AFP — Payments Fraud & Control Survey](https://www.financialprofessionals.org/topics/payment-topics/payments-fraud)
+- [AFP — BEC in 2025](https://www.financialprofessionals.org/training-resources/resources/articles/Details/what-treasury-professionals-need-to-know-about-business-email-compromise-in-2025)
+- [Brex — Positive Pay Guide](https://www.brex.com/spend-trends/business-banking/positive-pay)
+- [Modern Treasury — Positive Pay](https://www.moderntreasury.com/journal/how-to-avoid-check-fraud-with-positive-pay)
+- [U.S. Treasury — AI Fraud Detection](https://home.treasury.gov/news/press-releases/jy2650)
+- [U.S. Bank — AI Fraud Detection in Treasury](https://www.usbank.com/corporate-and-commercial-banking/insights/risk/mitigation/treasury-dept-partners-using-ai-to-fight-fraud.html)
+- [ION Group — Payments Optimization & Fraud Detection](https://iongroup.com/solutions/treasury/payments/)
+
+### SOX Compliance & Controls
+- [AuditBoard — SOX Controls Best Practices](https://auditboard.com/blog/sox-controls)
+- [ConductorOne — SOX Access Controls & SoD](https://www.conductorone.com/guides/sox-access-controls-separation-of-duties-and-best-practices/)
+- [FitGap — Treasury Dealing Controls at Scale](https://us.fitgap.com/stack-guides/operational-controls-and-segregation-of-duties-for-treasury-dealing-at-scale)
+- [GrowExx — SOX Compliance Checklist 2026](https://www.growexx.com/blog/sox-compliance-checklist/)
+- [VComply — Treasury Compliance Practices](https://www.v-comply.com/blog/treasury-compliance-practices-requirements/)
+
+### Supply Chain Finance & Working Capital
+- [Global Finance — Best SCF Providers 2025](https://gfmag.com/award/award-winners/worlds-best-supply-chain-finance-providers-2025/)
+- [PrimeRevenue — Dynamic Discounting](https://primerevenue.com/what-is-dynamic-discounting/)
+- [C2FO — Dynamic Discounting vs SCF](https://c2fo.com/resources/dynamic-discounting/dynamic-discounting-vs-supply-chain-finance/)
+
+### Interest Rate Risk
+- [TreasuryView — Interest Rate Risk Management](https://www.treasuryview.com/en/interest-rate-risk-management)
+- [GTreasury — Interest Rate Risk Management](https://www.gtreasury.com/solutions/risk-management/ir)
+- [Hedgebook — Interest Rate Swap Management](https://hedgebook.com/interest-rate-swap-management-including-valuations-with-examples/)
+- [PIMCO — Understanding Interest Rate Swaps](https://www.pimco.com/us/en/resources/education/understanding-interest-rate-swaps)
+
+### Real-Time Treasury & Open Banking
+- [The Global Treasurer — APIs & Open Banking Reshaping Treasury](https://www.theglobaltreasurer.com/2025/05/21/apis-open-banking-corporate-treasury/)
+- [J.P. Morgan — APIs for Modern Treasury](https://www.jpmorgan.com/insights/payments/apis-developer-experience/apis-modern-day-treasury)
+- [U.S. Bank — API Integrations Unlock Real-Time Treasury](https://www.usbank.com/corporate-and-commercial-banking/insights/payments-hub/trends/how-api-integrations-unlock-real-time-treasury.html)
+- [Nordea — APIs and AI Reinventing Treasury](https://www.nordea.com/en/news/apis-and-ai-in-finance-reinventing-treasury-operations)
+
+### ESG / Sustainability
+- [ICMA — Sustainability-Linked Bond Principles](https://www.icmagroup.org/sustainable-finance/the-principles-guidelines-and-handbooks/sustainability-linked-bond-principles-slbp/)
+- [Sustainalytics — Green Bonds vs SLLs Explained](https://www.sustainalytics.com/esg-research/resource/corporate-esg-blog/simplifying-sustainable-finance-green-loans-vs-green-bonds-vs-sustainability-linked-loan-and-more)
+- [ING — Global Sustainable Finance 2025](https://think.ing.com/articles/global-sustainable-finance-2025-mixed-results-highlight-regional-differences/)
+- [Moody's — ESG Sustainable Finance 2025](https://www.moodys.com/web/en/us/insights/credit-risk/outlooks/esg-sustainable-finance-2025.html)
+
+### Commodity Risk Management
+- [World Bank — Commodity Price Risk Management Advisory](https://treasury.worldbank.org/en/about/unit/treasury/client-services/commodity-price-risk-management-advisory)
+- [Zanders — Treasury's Role in Commodity Risk](https://zandersgroup.com/en/insights/blog/challenges-to-treasurys-role-in-commodity-risk-management/)
+- [Oliver Wyman — Commodity Trading Risk Management Transformation](https://www.oliverwyman.com/our-expertise/insights/2025/jun/how-risk-management-commodity-trading-is-transforming.html)
+
+### Cash Repatriation & Cross-Border
+- [PwC — The Art of Cash Repatriation](https://www.pwc.com/gx/en/services/legal-business-solutions/corporate-and-commercial/the-art-of-cash-repatriation.html)
+- [Treasury Today — Trapped Cash Repatriation Methods](https://treasurytoday.com/insight-and-analysis/trapped-cash-and-the-different-ways-treasurers-can-repatriate-stuck-balances/)
+- [Deutsche Bank — Setting Free the Cash](https://flow.db.com/topics/cash-management/setting-free-the-cash)
+- [EuroFinance — Navigating Trapped Cash](https://www.eurofinance.com/news/navigating-trapped-cash-treasury-tactics-for-unlocking-funds-in-complex-markets/)
+
+### M&A Treasury Integration
+- [ACT — How to Integrate Treasury After M&A](https://www.treasurers.org/hub/treasurer-magazine/how-to-integrate-treasury-systems-after-m&a)
+- [RSM — Post-M&A Treasury Integration Strategy](https://rsmus.com/insights/services/digital-transformation/crafting-a-successful-post-m-a-treasury-integration-strategy.html)
+- [Trovata — Treasury M&A Roadmap](https://trovata.io/blog/corporate-treasury-ma-roadmap/)
+- [Deloitte — Eight Keys to Treasury Integration (PDF)](https://www2.deloitte.com/content/dam/Deloitte/us/Documents/mergers-acqisitions/us-ma-eight-keys-to-a-successful-treasury-integration.pdf)
+
+### Business Continuity
+- [Hancock Whitney — Treasury BCP for 2025](https://www.hancockwhitney.com/insights/ensuring-resilience-business-continuity-planning-for-treasury-clients)
+- [Kyriba — Treasury BCP Best Practices](https://www.kyriba.com/blog/business-continuity-best-practices/)
+- [ACT Learning — BCP for Treasury](https://learning.treasurers.org/resources/business-continuity-plan-for-treasury)
+
+### Shared Services & In-House Banking
+- [Serrala — POBO Architecture with SAP](https://www.serrala.com/blog/the-hidden-architecture-behind-pobo-that-no-one-talks-about)
+- [Nomentia — POBO & COBO Benefits](https://www.nomentia.com/blog/8-benefits-of-pobo-cobo)
+- [BNP Paribas — Putting POBO Into Practice](https://cib.bnpparibas/putting-pobo-into-practice/)
+- [Redbridge — Keys to Successful In-House Banking](https://www.redbridgedta.com/us/market-intelligence/the-keys-to-successful-in-house-banking/)
+
+### General Treasury Management
+- [GTreasury — Top 10 Treasury Management Systems](https://www.gtreasury.com/posts/top-10-treasury-management-systems)
+- [Brex — Guide to Corporate Treasury Management](https://www.brex.com/spend-trends/business-banking/corporate-treasury-management)
+- [FTI Treasury — IFRS 9 Hedge Accounting](https://www.ftitreasury.com/ifrs-9-hedge-accounting-made-simple-for-corporate-treasurers/)
+- [ISDA — Collateral Management Operational Practices](https://www.isda.org/collateral-management-sop/)
+- [EACT — Counterparty Risk Assessment](https://eact.eu/articles/counterparty-risk-assessment/)
