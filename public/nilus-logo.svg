@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 48" fill="white">
+  <!-- Stylized tree/pagoda icon -->
+  <g transform="translate(4, 2)">
+    <!-- Top tier -->
+    <path d="M20 8 C20 8, 14 16, 8 16 C14 16, 20 14, 20 14 C20 14, 26 16, 32 16 C26 16, 20 8, 20 8Z" opacity="0.9"/>
+    <!-- Middle tier -->
+    <path d="M20 14 C20 14, 11 24, 4 24 C11 24, 20 21, 20 21 C20 21, 29 24, 36 24 C29 24, 20 14, 20 14Z" opacity="0.8"/>
+    <!-- Bottom tier -->
+    <path d="M20 21 C20 21, 8 33, 0 33 C8 33, 20 29, 20 29 C20 29, 32 33, 40 33 C32 33, 20 21, 20 21Z" opacity="0.7"/>
+    <!-- Trunk -->
+    <rect x="18" y="33" width="4" height="10" rx="1" opacity="0.6"/>
+  </g>
+  <!-- "nilus" text -->
+  <text x="52" y="34" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" font-size="28" font-weight="300" letter-spacing="2">nilus</text>
+</svg>

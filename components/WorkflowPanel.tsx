@@ -4,10 +4,19 @@ import { useState, useRef, useCallback } from 'react';
 import { CadenceData, Workflow } from '@/types';
 import WorkflowRow from './WorkflowRow';
 
+const CADENCE_LABELS: Record<string, string> = {
+  daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', quarterly: 'Quarterly', annual: 'Annual',
+};
+const CADENCE_COLORS: Record<string, string> = {
+  daily: '#e74c3c', weekly: '#e67e22', monthly: '#3498db', quarterly: '#8e44ad', annual: '#16a085',
+};
+
 interface WorkflowPanelProps {
   cadenceKey: string;
   cadence: CadenceData;
   customWorkflows: Workflow[];
+  linkedWorkflows: { workflow: Workflow; sourceCadence: string }[];
+  allCadenceKeys: string[];
   onToggleDo: (cadence: string, id: string, val: boolean) => void;
   onToggleWish: (cadence: string, id: string, val: boolean) => void;
   onUpdateMetric: (cadence: string, id: string, field: string, val: string) => void;
@@ -19,6 +28,7 @@ interface WorkflowPanelProps {
   onToggleSubDo: (cadence: string, workflowId: string, subId: string, val: boolean) => void;
   onToggleSubWish: (cadence: string, workflowId: string, subId: string, val: boolean) => void;
   onAddSub: (cadence: string, workflowId: string, data: { name: string; how: string; pain: string }) => void;
+  onUpdateCadences: (cadence: string, id: string, cadences: string[]) => void;
 }
 
 const EMPTY_ROW = { name: '', who: '', systems: '', how: '', pain: '', hrs: '', err: '', opt: '' };
@@ -27,6 +37,8 @@ export default function WorkflowPanel({
   cadenceKey,
   cadence,
   customWorkflows,
+  linkedWorkflows,
+  allCadenceKeys,
   onToggleDo,
   onToggleWish,
   onUpdateMetric,
@@ -35,6 +47,7 @@ export default function WorkflowPanel({
   onToggleSubDo,
   onToggleSubWish,
   onAddSub,
+  onUpdateCadences,
 }: WorkflowPanelProps) {
   const allWorkflows = [...cadence.workflows, ...customWorkflows];
   const [draft, setDraft] = useState({ ...EMPTY_ROW });
@@ -73,12 +86,13 @@ export default function WorkflowPanel({
           <col style={{ width: '3%' }} />
           <col style={{ width: '12%' }} />
           <col style={{ width: '8%' }} />
-          <col style={{ width: '9%' }} />
-          <col style={{ width: '22%' }} />
-          <col style={{ width: '17%' }} />
+          <col style={{ width: '8%' }} />
+          <col style={{ width: '19%' }} />
+          <col style={{ width: '15%' }} />
           <col style={{ width: '6%' }} />
-          <col style={{ width: '8%' }} />
-          <col style={{ width: '8%' }} />
+          <col style={{ width: '7%' }} />
+          <col style={{ width: '7%' }} />
+          <col style={{ width: '7%' }} />
         </colgroup>
         <thead>
           <tr>
@@ -92,6 +106,7 @@ export default function WorkflowPanel({
             <th>Hrs/Mo</th>
             <th>Error Cost</th>
             <th>$ Optimization</th>
+            <th>Freq</th>
           </tr>
         </thead>
         <tbody>
@@ -100,6 +115,7 @@ export default function WorkflowPanel({
               key={w.id}
               workflow={w}
               cadenceKey={cadenceKey}
+              allCadenceKeys={allCadenceKeys}
               onToggleDo={onToggleDo}
               onToggleWish={onToggleWish}
               onUpdateMetric={onUpdateMetric}
@@ -107,6 +123,7 @@ export default function WorkflowPanel({
               onToggleSubDo={onToggleSubDo}
               onToggleSubWish={onToggleSubWish}
               onAddSub={onAddSub}
+              onUpdateCadences={onUpdateCadences}
             />
           ))}
           {/* Inline empty row for adding custom workflows */}
@@ -199,7 +216,37 @@ export default function WorkflowPanel({
                 )}
               </div>
             </td>
+            <td></td>
           </tr>
+
+          {/* Linked workflows from other cadences */}
+          {linkedWorkflows.length > 0 && (
+            <>
+              <tr className="linked-divider-row">
+                <td colSpan={11}>
+                  Linked from other cadences
+                </td>
+              </tr>
+              {linkedWorkflows.map(({ workflow: w, sourceCadence }) => (
+                <WorkflowRow
+                  key={`linked-${sourceCadence}-${w.id}`}
+                  workflow={w}
+                  cadenceKey={sourceCadence}
+                  allCadenceKeys={allCadenceKeys}
+                  readOnly
+                  sourceCadence={sourceCadence}
+                  onToggleDo={onToggleDo}
+                  onToggleWish={onToggleWish}
+                  onUpdateMetric={onUpdateMetric}
+                  onUpdateSub={onUpdateSub}
+                  onToggleSubDo={onToggleSubDo}
+                  onToggleSubWish={onToggleSubWish}
+                  onAddSub={onAddSub}
+                  onUpdateCadences={onUpdateCadences}
+                />
+              ))}
+            </>
+          )}
         </tbody>
       </table>
     </div>

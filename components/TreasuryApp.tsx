@@ -13,9 +13,10 @@ import SummaryPanel from './SummaryPanel';
 
 function deepCloneWorkflowData(): WorkflowDataMap {
   const raw = JSON.parse(JSON.stringify(WORKFLOW_DATA)) as WorkflowDataMap;
-  for (const cadence of Object.values(raw)) {
+  for (const [cadenceKey, cadence] of Object.entries(raw)) {
     for (const w of cadence.workflows) {
       w.subs = w.subs.map(s => ({ ...s, doToday: s.doToday ?? false, wishToDo: s.wishToDo ?? false }));
+      w.cadences = w.cadences || [cadenceKey];
     }
   }
   return raw;
@@ -32,6 +33,7 @@ function addDefaultsToWorkflowData(raw: Record<string, any>): WorkflowDataMap {
         ...w,
         doToday: false,
         wishToDo: false,
+        cadences: w.cadences || [key],
         subs: (w.subs || []).map((s: any) => ({ ...s, doToday: false, wishToDo: false })),
       })),
     };
@@ -86,7 +88,7 @@ export default function TreasuryApp() {
     setWorkflowData(prev => {
       const next = { ...prev };
       const cadenceData = { ...next[cadence], workflows: next[cadence].workflows.map(w =>
-        w.id === id ? { ...w, doToday: val } : w
+        w.id === id ? { ...w, doToday: val, ...(val ? { wishToDo: false } : {}) } : w
       )};
       next[cadence] = cadenceData;
       return next;
@@ -94,7 +96,7 @@ export default function TreasuryApp() {
     setCustomWorkflows(prev => {
       const arr = prev[cadence];
       if (!arr) return prev;
-      return { ...prev, [cadence]: arr.map(w => w.id === id ? { ...w, doToday: val } : w) };
+      return { ...prev, [cadence]: arr.map(w => w.id === id ? { ...w, doToday: val, ...(val ? { wishToDo: false } : {}) } : w) };
     });
   }, []);
 
@@ -102,7 +104,7 @@ export default function TreasuryApp() {
     setWorkflowData(prev => {
       const next = { ...prev };
       const cadenceData = { ...next[cadence], workflows: next[cadence].workflows.map(w =>
-        w.id === id ? { ...w, wishToDo: val } : w
+        w.id === id ? { ...w, wishToDo: val, ...(val ? { doToday: false } : {}) } : w
       )};
       next[cadence] = cadenceData;
       return next;
@@ -110,7 +112,7 @@ export default function TreasuryApp() {
     setCustomWorkflows(prev => {
       const arr = prev[cadence];
       if (!arr) return prev;
-      return { ...prev, [cadence]: arr.map(w => w.id === id ? { ...w, wishToDo: val } : w) };
+      return { ...prev, [cadence]: arr.map(w => w.id === id ? { ...w, wishToDo: val, ...(val ? { doToday: false } : {}) } : w) };
     });
   }, []);
 
@@ -157,6 +159,7 @@ export default function TreasuryApp() {
       wishToDo: false,
       subs: [],
       custom: true,
+      cadences: [cadenceKey],
     };
 
     setCustomWorkflows(prev => ({
@@ -203,7 +206,7 @@ export default function TreasuryApp() {
   const toggleSubDo = useCallback((cadence: string, workflowId: string, subId: string, val: boolean) => {
     const update = (w: Workflow) => {
       if (w.id !== workflowId) return w;
-      return { ...w, subs: w.subs.map(s => s.id === subId ? { ...s, doToday: val } : s) };
+      return { ...w, subs: w.subs.map(s => s.id === subId ? { ...s, doToday: val, ...(val ? { wishToDo: false } : {}) } : s) };
     };
     setWorkflowData(prev => {
       const next = { ...prev };
@@ -220,7 +223,7 @@ export default function TreasuryApp() {
   const toggleSubWish = useCallback((cadence: string, workflowId: string, subId: string, val: boolean) => {
     const update = (w: Workflow) => {
       if (w.id !== workflowId) return w;
-      return { ...w, subs: w.subs.map(s => s.id === subId ? { ...s, wishToDo: val } : s) };
+      return { ...w, subs: w.subs.map(s => s.id === subId ? { ...s, wishToDo: val, ...(val ? { doToday: false } : {}) } : s) };
     };
     setWorkflowData(prev => {
       const next = { ...prev };
@@ -359,6 +362,28 @@ export default function TreasuryApp() {
 
   const cadenceKeys = Object.keys(workflowData);
 
+  // Derive linked workflows: for each tab, find workflows from OTHER cadences that include this tab
+  const linkedWorkflowsByCadence = useMemo(() => {
+    const result: Record<string, { workflow: Workflow; sourceCadence: string }[]> = {};
+    for (const targetCadence of cadenceKeys) {
+      const linked: { workflow: Workflow; sourceCadence: string }[] = [];
+      for (const sourceCadence of cadenceKeys) {
+        if (sourceCadence === targetCadence) continue;
+        const allWfs = [
+          ...workflowData[sourceCadence].workflows,
+          ...(customWorkflows[sourceCadence] || []),
+        ];
+        for (const w of allWfs) {
+          if (w.cadences && w.cadences.includes(targetCadence)) {
+            linked.push({ workflow: w, sourceCadence });
+          }
+        }
+      }
+      result[targetCadence] = linked;
+    }
+    return result;
+  }, [workflowData, customWorkflows, cadenceKeys]);
+
   return (
     <>
       <TopBar
@@ -382,6 +407,8 @@ export default function TreasuryApp() {
               cadenceKey={key}
               cadence={workflowData[key]}
               customWorkflows={customWorkflows[key] || []}
+              linkedWorkflows={linkedWorkflowsByCadence[key] || []}
+              allCadenceKeys={cadenceKeys}
               onToggleDo={toggleDo}
               onToggleWish={toggleWish}
               onUpdateMetric={updateMetric}
@@ -390,6 +417,7 @@ export default function TreasuryApp() {
               onToggleSubDo={toggleSubDo}
               onToggleSubWish={toggleSubWish}
               onAddSub={addSub}
+              onUpdateCadences={updateCadences}
             />
           </div>
         ))}
