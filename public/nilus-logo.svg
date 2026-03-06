@@ -1,20 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" fill="white">
-  <!-- Nilus logo: upward chevron + stem + 3 symmetric wave pairs -->
-  <g transform="translate(2, 1)">
-    <!-- Upward chevron -->
-    <path d="M18,1 L12.5,8.5 L15,8.5 L18,4 L21,8.5 L23.5,8.5 Z" />
-    <!-- Vertical stem -->
-    <rect x="16.8" y="9" width="2.4" height="5" rx="0.4"/>
-    <!-- Wave tier 1 (narrow) -->
-    <path d="M18,15 Q12,15 8,19.5" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round"/>
-    <path d="M18,15 Q24,15 28,19.5" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round"/>
-    <!-- Wave tier 2 (medium) -->
-    <path d="M18,20.5 Q10,20.5 4,26.5" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round"/>
-    <path d="M18,20.5 Q26,20.5 32,26.5" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round"/>
-    <!-- Wave tier 3 (wide) -->
-    <path d="M18,26 Q8,26 0,33.5" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round"/>
-    <path d="M18,26 Q28,26 36,33.5" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" fill="white">
+  <!-- Nilus brand mark — exact paths from nilus.com globa-cta-logo.svg -->
+  <!-- Original viewBox centered at x=88, y range 57-129 (72 units tall) -->
+  <!-- Scaled 0.6x and translated to fit 48px height, positioned left -->
+  <g transform="translate(-12.8, -10.2) scale(0.667)">
+    <!-- Top tier right -->
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M95.604 109.405C95.604 116.2 101.349 121.709 108.436 121.709V129C97.1493 129 88 120.227 88 109.405H95.604Z"/>
+    <!-- Top tier left -->
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M80.396 109.405C80.396 116.2 74.6511 121.709 67.5643 121.709V129C78.8507 129 88 120.227 88 109.405H80.396Z"/>
+    <!-- Middle tier right -->
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M95.604 84.3418C95.604 98.1299 107.463 109.405 122.218 109.405V116.696C103.377 116.696 88 102.265 88 84.3418H95.604Z"/>
+    <!-- Middle tier left -->
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M80.396 84.3413C80.396 98.1834 68.6934 109.405 54.2575 109.405V116.696C72.8929 116.696 88 102.211 88 84.3418L80.396 84.3413Z"/>
+    <!-- Bottom tier right -->
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M95.604 57C95.604 78.3923 113.69 95.7342 136 95.7342V103.025C109.49 103.025 88 82.4191 88 57H95.604Z"/>
+    <!-- Bottom tier left -->
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M80.396 57C80.396 78.3923 62.3101 95.7342 40 95.7342L40 103.025C66.5096 103.025 88 82.4191 88 57H80.396Z"/>
   </g>
   <!-- "nilus" wordmark -->
-  <text x="50" y="34" font-family="'Nunito', 'Rubik', 'Segoe UI', system-ui, sans-serif" font-size="28" font-weight="500" letter-spacing="1.5">nilus</text>
+  <text x="56" y="34" font-family="'Nunito', 'Rubik', system-ui, sans-serif" font-size="27" font-weight="500" letter-spacing="1">nilus</text>
 </svg>
