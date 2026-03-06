@@ -154,7 +154,7 @@ export default function WorkflowRow({
           ))}
           {/* Inline add sub-workflow row */}
           <tr className="sub-row inline-add-row" onKeyDown={handleSubKeyDown}>
-            <td></td>
+            <td className="toggle-cell"><span className="add-row-hint">+</span></td>
             <td></td>
             <td>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>

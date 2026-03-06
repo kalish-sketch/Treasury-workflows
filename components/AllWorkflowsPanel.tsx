@@ -1,15 +1,11 @@
 'use client';
 
+import { useState, Fragment } from 'react';
 import { WorkflowDataMap, Workflow } from '@/types';
-import WorkflowTagCell from './WorkflowTagCell';
 
 interface AllWorkflowsPanelProps {
   workflowData: WorkflowDataMap;
   customWorkflows: Record<string, Workflow[]>;
-  onToggleDo: (cadence: string, id: string, val: boolean) => void;
-  onToggleWish: (cadence: string, id: string, val: boolean) => void;
-  onUpdateMetric: (cadence: string, id: string, field: string, val: string) => void;
-  onUpdateCadences: (cadence: string, id: string, cadences: string[]) => void;
 }
 
 const CADENCE_ORDER = ['daily', 'weekly', 'monthly', 'quarterly', 'annual'];
@@ -23,11 +19,17 @@ const CADENCE_COLORS: Record<string, string> = {
 export default function AllWorkflowsPanel({
   workflowData,
   customWorkflows,
-  onToggleDo,
-  onToggleWish,
-  onUpdateMetric,
-  onUpdateCadences,
 }: AllWorkflowsPanelProps) {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (key: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
   // Flatten all workflows with their source cadence
   const allRows: { cadence: string; workflow: Workflow }[] = [];
   for (const cadence of CADENCE_ORDER) {
@@ -41,39 +43,29 @@ export default function AllWorkflowsPanel({
     }
   }
 
-  function handleCadenceToggle(sourceCadence: string, wId: string, currentCadences: string[] | undefined, toggledCadence: string, checked: boolean) {
-    const current = currentCadences || [sourceCadence];
-    let updated: string[];
-    if (checked) {
-      updated = [...new Set([...current, toggledCadence])];
-    } else {
-      updated = current.filter(c => c !== toggledCadence);
-      // Ensure at least the source cadence remains
-      if (updated.length === 0) updated = [sourceCadence];
-    }
-    onUpdateCadences(sourceCadence, wId, updated);
-  }
-
   return (
     <div className="cadence-section all-workflows">
       <div className="cadence-header">
         <span className="cadence-badge" style={{ background: '#1a1a2e' }}>All</span>
-        <span className="cadence-title">All Workflows — Frequency Overview</span>
+        <span className="cadence-title">All Workflows — Summary View</span>
       </div>
+      <p className="note">
+        This is a read-only overview. Edit workflows in their respective cadence tabs (Daily, Weekly, etc.).
+      </p>
       <table>
         <colgroup>
-          <col style={{ width: '2.5%' }} />
-          <col style={{ width: '2.5%' }} />
+          <col style={{ width: '3%' }} />
+          <col style={{ width: '3%' }} />
           <col style={{ width: '5%' }} />
-          <col style={{ width: '10%' }} />
+          <col style={{ width: '12%' }} />
+          <col style={{ width: '8%' }} />
+          <col style={{ width: '8%' }} />
+          <col style={{ width: '20%' }} />
+          <col style={{ width: '15%' }} />
+          <col style={{ width: '5%' }} />
           <col style={{ width: '7%' }} />
           <col style={{ width: '7%' }} />
-          <col style={{ width: '17%' }} />
-          <col style={{ width: '14%' }} />
-          <col style={{ width: '5%' }} />
-          <col style={{ width: '6%' }} />
-          <col style={{ width: '6%' }} />
-          <col style={{ width: '18%' }} />
+          <col style={{ width: '7%' }} />
         </colgroup>
         <thead>
           <tr>
@@ -93,109 +85,103 @@ export default function AllWorkflowsPanel({
         </thead>
         <tbody>
           {allRows.map(({ cadence, workflow: w }) => {
+            const rowKey = `${cadence}-${w.id}`;
+            const isExpanded = expandedIds.has(rowKey);
+            const hasSubs = w.subs && w.subs.length > 0;
             const activeCadences = w.cadences || [cadence];
+
             return (
-              <tr key={`${cadence}-${w.id}`}>
-                <td className="toggle-cell">
-                  <input
-                    type="checkbox"
-                    className="toggle-cb"
-                    checked={w.doToday}
-                    onChange={e => onToggleDo(cadence, w.id, e.target.checked)}
-                    title="We do this today"
-                  />
-                </td>
-                <td className="toggle-cell">
-                  <input
-                    type="checkbox"
-                    className="toggle-cb wish-cb"
-                    checked={w.wishToDo}
-                    onChange={e => onToggleWish(cadence, w.id, e.target.checked)}
-                    title="We wish we could do this"
-                  />
-                </td>
-                <td>
-                  <span
-                    className="cadence-badge-small"
-                    style={{ background: CADENCE_COLORS[cadence] }}
-                  >
-                    {CADENCE_LABELS[cadence]}
-                  </span>
-                </td>
-                <td>
-                  <span className="workflow-name">{w.name}</span>
-                  <br />
-                  <span className="time-est">{w.timeEst || ''}</span>
-                </td>
-                <td>
-                  <WorkflowTagCell
-                    htmlContent={w.who}
-                    type="who"
-                    onChange={(html) => onUpdateMetric(cadence, w.id, 'who', html)}
-                  />
-                </td>
-                <td>
-                  <WorkflowTagCell
-                    htmlContent={w.systems}
-                    type="systems"
-                    onChange={(html) => onUpdateMetric(cadence, w.id, 'systems', html)}
-                  />
-                </td>
-                <td className="editable-text-cell">
-                  <textarea
-                    className="inline-textarea"
-                    defaultValue={w.how}
-                    onBlur={e => onUpdateMetric(cadence, w.id, 'how', e.target.value)}
-                    rows={3}
-                  />
-                </td>
-                <td className="editable-text-cell pain-text">
-                  <textarea
-                    className="inline-textarea pain"
-                    defaultValue={w.pain}
-                    onBlur={e => onUpdateMetric(cadence, w.id, 'pain', e.target.value)}
-                    rows={3}
-                  />
-                </td>
-                <td className="metric-cell hrs">
-                  <input
-                    type="text"
-                    defaultValue={w.hrs}
-                    onBlur={e => onUpdateMetric(cadence, w.id, 'hrs', e.target.value)}
-                  />
-                </td>
-                <td className="metric-cell err">
-                  <input
-                    type="text"
-                    defaultValue={w.err}
-                    onBlur={e => onUpdateMetric(cadence, w.id, 'err', e.target.value)}
-                  />
-                </td>
-                <td className="metric-cell opt">
-                  <input
-                    type="text"
-                    defaultValue={w.opt}
-                    onBlur={e => onUpdateMetric(cadence, w.id, 'opt', e.target.value)}
-                  />
-                </td>
-                <td className="frequency-cell">
-                  <div className="freq-checkboxes">
-                    {CADENCE_ORDER.map(c => (
-                      <label key={c} className="freq-label" title={CADENCE_LABELS[c]}>
-                        <input
-                          type="checkbox"
-                          className="freq-cb"
-                          checked={activeCadences.includes(c)}
-                          onChange={e => handleCadenceToggle(cadence, w.id, w.cadences, c, e.target.checked)}
-                        />
-                        <span className="freq-abbr" style={{ color: CADENCE_COLORS[c] }}>
-                          {CADENCE_LABELS[c].charAt(0)}
-                        </span>
-                      </label>
+              <Fragment key={rowKey}>
+                <tr className={w.doToday || w.wishToDo ? '' : 'all-wf-unselected'}>
+                  <td className="toggle-cell">
+                    {w.doToday ? (
+                      <span className="all-wf-check do">✓</span>
+                    ) : (
+                      <span className="all-wf-check empty">—</span>
+                    )}
+                  </td>
+                  <td className="toggle-cell">
+                    {w.wishToDo ? (
+                      <span className="all-wf-check wish">★</span>
+                    ) : (
+                      <span className="all-wf-check empty">—</span>
+                    )}
+                  </td>
+                  <td>
+                    <span
+                      className="cadence-badge-small"
+                      style={{ background: CADENCE_COLORS[cadence] }}
+                    >
+                      {CADENCE_LABELS[cadence]}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {hasSubs && (
+                        <button
+                          className="expand-btn"
+                          onClick={() => toggleExpand(rowKey)}
+                          title={isExpanded ? 'Collapse sub-workflows' : 'Expand sub-workflows'}
+                        >
+                          {isExpanded ? '▾' : '▸'}
+                        </button>
+                      )}
+                      <div>
+                        <span className="workflow-name">{w.name}</span>
+                        <br />
+                        <span className="time-est">{w.timeEst || ''}</span>
+                        {hasSubs && (
+                          <span className="time-est" style={{ marginLeft: '6px' }}>
+                            ({w.subs.length} sub-task{w.subs.length > 1 ? 's' : ''})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td dangerouslySetInnerHTML={{ __html: w.who || '<span style="color:#9ca3af;font-size:10px">—</span>' }} />
+                  <td dangerouslySetInnerHTML={{ __html: w.systems || '<span style="color:#9ca3af;font-size:10px">—</span>' }} />
+                  <td className="all-wf-text">{w.how || '—'}</td>
+                  <td className="all-wf-text pain-text">{w.pain || '—'}</td>
+                  <td className="all-wf-metric hrs">{w.hrs || '—'}</td>
+                  <td className="all-wf-metric err">{w.err || '—'}</td>
+                  <td className="all-wf-metric opt">{w.opt || '—'}</td>
+                  <td style={{ fontSize: '10px' }}>
+                    {activeCadences.map(c => (
+                      <span
+                        key={c}
+                        className="cadence-badge-small"
+                        style={{ background: CADENCE_COLORS[c], marginRight: '2px', marginBottom: '2px' }}
+                      >
+                        {CADENCE_LABELS[c]?.charAt(0)}
+                      </span>
                     ))}
-                  </div>
-                </td>
-              </tr>
+                  </td>
+                </tr>
+                {isExpanded && hasSubs && w.subs.map(s => (
+                  <tr key={`${rowKey}-${s.id}`} className="sub-row">
+                    <td className="toggle-cell">
+                      {s.doToday ? (
+                        <span className="all-wf-check do" style={{ fontSize: '10px' }}>✓</span>
+                      ) : (
+                        <span className="all-wf-check empty" style={{ fontSize: '10px' }}>—</span>
+                      )}
+                    </td>
+                    <td className="toggle-cell">
+                      {s.wishToDo ? (
+                        <span className="all-wf-check wish" style={{ fontSize: '10px' }}>★</span>
+                      ) : (
+                        <span className="all-wf-check empty" style={{ fontSize: '10px' }}>—</span>
+                      )}
+                    </td>
+                    <td></td>
+                    <td><span className="sub-name">{'\u21B3'} {s.name}</span></td>
+                    <td colSpan={2}></td>
+                    <td className="all-wf-text" style={{ fontSize: '10px' }}>{s.how || '—'}</td>
+                    <td className="all-wf-text pain-text" style={{ fontSize: '10px' }}>{s.pain || '—'}</td>
+                    <td colSpan={4}></td>
+                  </tr>
+                ))}
+              </Fragment>
             );
           })}
         </tbody>

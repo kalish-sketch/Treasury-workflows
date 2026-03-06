@@ -46,6 +46,7 @@ export default function TreasuryApp() {
   const [customWorkflows, setCustomWorkflows] = useState<Record<string, Workflow[]>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const profileRef = useRef<CompanyProfileHandle>(null);
 
   // Try to fetch from API; if DB is empty or unavailable, keep static fallback
@@ -266,47 +267,74 @@ export default function TreasuryApp() {
     setCustomWorkflows({});
   }, []);
 
-  const submitAssessment = useCallback(async () => {
-    setSubmitting(true);
+  const buildPayload = useCallback(() => {
+    const profile = profileRef.current?.getProfile() || {
+      company: '', revenue: '', industry: '', entities: '', countries: '',
+      currencies: [], teamSize: '', numBanks: '', banks: [], numAccounts: '',
+      erp: '', tms: '', otherSystems: [], paymentVolume: '', facilities: '',
+    };
+
+    const wfSelections: Record<string, unknown[]> = {};
+    Object.keys(workflowData).forEach(cadence => {
+      wfSelections[cadence] = workflowData[cadence].workflows.map(w => ({
+        id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
+        hrs: w.hrs, errCost: w.err, optimization: w.opt,
+        how: w.how, pain: w.pain, who: w.who, systems: w.systems,
+        cadences: w.cadences,
+        subs: (w.subs || []).map(s => ({ id: s.id, name: s.name })),
+      }));
+    });
+
+    const customWfs: Record<string, unknown[]> = {};
+    Object.keys(customWorkflows).forEach(cadence => {
+      customWfs[cadence] = (customWorkflows[cadence] || []).map(w => ({
+        id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
+        hrs: w.hrs, errCost: w.err, optimization: w.opt,
+        how: w.how, pain: w.pain, who: w.who, systems: w.systems,
+        cadences: w.cadences, custom: true, subs: [],
+      }));
+    });
+
+    return {
+      companyName: profile.company || '',
+      profile,
+      workflowSelections: wfSelections,
+      customWorkflows: customWfs,
+    };
+  }, [workflowData, customWorkflows]);
+
+  const saveAssessment = useCallback(async () => {
+    setSaving(true);
     try {
-      const profile = profileRef.current?.getProfile() || {
-        company: '', revenue: '', industry: '', entities: '', countries: '',
-        currencies: [], teamSize: '', numBanks: '', banks: [], numAccounts: '',
-        erp: '', tms: '', otherSystems: [], paymentVolume: '', facilities: '',
-      };
-
-      const wfSelections: Record<string, unknown[]> = {};
-      Object.keys(workflowData).forEach(cadence => {
-        wfSelections[cadence] = workflowData[cadence].workflows.map(w => ({
-          id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
-          hrs: w.hrs, errCost: w.err, optimization: w.opt,
-          how: w.how, pain: w.pain, who: w.who, systems: w.systems,
-          cadences: w.cadences,
-          subs: (w.subs || []).map(s => ({ id: s.id, name: s.name })),
-        }));
-      });
-
-      const customWfs: Record<string, unknown[]> = {};
-      Object.keys(customWorkflows).forEach(cadence => {
-        customWfs[cadence] = (customWorkflows[cadence] || []).map(w => ({
-          id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
-          hrs: w.hrs, errCost: w.err, optimization: w.opt,
-          how: w.how, pain: w.pain, who: w.who, systems: w.systems,
-          cadences: w.cadences, custom: true, subs: [],
-        }));
-      });
-
+      const payload = buildPayload();
       const res = await fetch('/api/assessments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companyName: profile.company || '',
-          profile,
-          workflowSelections: wfSelections,
-          customWorkflows: customWfs,
-        }),
+        body: JSON.stringify(payload),
       });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `HTTP ${res.status}`);
+      }
+      alert('Saved!');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      alert(`Error saving: ${msg}`);
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  }, [buildPayload]);
 
+  const submitAssessment = useCallback(async () => {
+    setSubmitting(true);
+    try {
+      const payload = buildPayload();
+      const res = await fetch('/api/assessments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
         throw new Error(errBody.error || `HTTP ${res.status}`);
@@ -319,7 +347,7 @@ export default function TreasuryApp() {
     } finally {
       setSubmitting(false);
     }
-  }, [workflowData, customWorkflows]);
+  }, [buildPayload]);
 
   const printSummary = useCallback(() => {
     window.print();
@@ -335,6 +363,8 @@ export default function TreasuryApp() {
     <>
       <TopBar
         onReset={resetAll}
+        onSave={saveAssessment}
+        saving={saving}
         onSubmit={submitAssessment}
         submitting={submitting}
         onViewRecommendations={() => switchTab('summary')}
@@ -368,10 +398,6 @@ export default function TreasuryApp() {
           <AllWorkflowsPanel
             workflowData={workflowData}
             customWorkflows={customWorkflows}
-            onToggleDo={toggleDo}
-            onToggleWish={toggleWish}
-            onUpdateMetric={updateMetric}
-            onUpdateCadences={updateCadences}
           />
         </div>
 
