@@ -2,6 +2,12 @@
 
 import { useState, useEffect, useMemo, useCallback, Fragment } from 'react';
 import Link from 'next/link';
+import {
+  CADENCE_ORDER, CADENCE_LABELS, CADENCE_COLORS,
+  stripHtmlTags, parseNumeric, formatCompact,
+  collectAllWorkflows, exportSingleAssessment, exportAllAssessments,
+  type AssessmentFull,
+} from '@/lib/exportExcel';
 
 interface AssessmentSummary {
   id: string;
@@ -10,227 +16,8 @@ interface AssessmentSummary {
   updatedAt: string;
 }
 
-interface AssessmentFull {
-  id: string;
-  companyName: string;
-  profile: Record<string, any>;
-  workflowSelections: Record<string, any[]>;
-  customWorkflows: Record<string, any[]>;
-  createdAt: string;
-  updatedAt: string;
-}
-
 type SortField = 'companyName' | 'createdAt';
 type SortDir = 'asc' | 'desc';
-
-const CADENCE_ORDER = ['daily', 'weekly', 'monthly', 'quarterly', 'annual'];
-const CADENCE_LABELS: Record<string, string> = {
-  daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly',
-  quarterly: 'Quarterly', annual: 'Annual',
-};
-const CADENCE_COLORS: Record<string, string> = {
-  daily: '#e74c3c', weekly: '#e67e22', monthly: '#3498db', quarterly: '#8e44ad', annual: '#16a085',
-};
-
-function escapeCSV(val: string): string {
-  if (!val) return '';
-  const s = String(val).replace(/"/g, '""');
-  return `"${s}"`;
-}
-
-function parseNumeric(val: string): number {
-  if (!val || val === '—' || val === '-') return 0;
-  const cleaned = val.replace(/[,$\/yr\/mo\s]/g, '');
-  const parts = cleaned.match(/[\d.]+[KkMm]?/g);
-  if (!parts || parts.length === 0) return 0;
-  const toNum = (s: string): number => {
-    const upper = s.toUpperCase();
-    if (upper.endsWith('M')) return parseFloat(s) * 1_000_000;
-    if (upper.endsWith('K')) return parseFloat(s) * 1_000;
-    return parseFloat(s) || 0;
-  };
-  const nums = parts.map(toNum);
-  return nums.reduce((a, b) => a + b, 0) / nums.length;
-}
-
-function formatCompact(val: number): string {
-  if (val === 0) return '—';
-  if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
-  if (val >= 1_000) return `$${(val / 1_000).toFixed(0)}K`;
-  return val.toFixed(0);
-}
-
-function stripHtmlTags(html: string): string {
-  if (!html) return '';
-  return html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
-}
-
-interface WorkflowEntry {
-  name: string;
-  doToday: boolean;
-  wishToDo: boolean;
-  hrs: string;
-  errCost: string;
-  optimization: string;
-  who: string;
-  systems: string;
-  how: string;
-  pain: string;
-  cadences: string[];
-  custom: boolean;
-  subs: { id: string; name: string }[];
-}
-
-function collectAllWorkflows(a: AssessmentFull) {
-  const all: { cadence: string; w: WorkflowEntry }[] = [];
-  let doCount = 0, wishCount = 0, notSelectedCount = 0;
-  let doHrs = 0, wishHrs = 0, doErr = 0, doOpt = 0;
-  const doNames: string[] = [];
-  const wishNames: string[] = [];
-  const notSelectedNames: string[] = [];
-
-  for (const cadence of CADENCE_ORDER) {
-    const wfs = (a.workflowSelections || {})[cadence] || [];
-    const customs = (a.customWorkflows || {})[cadence] || [];
-    for (const w of [...(wfs as any[]), ...(customs as any[])]) {
-      const entry: WorkflowEntry = {
-        name: w.name,
-        doToday: !!w.doToday,
-        wishToDo: !!w.wishToDo,
-        hrs: w.hrs || '',
-        errCost: w.errCost || w.err || '',
-        optimization: w.optimization || w.opt || '',
-        who: stripHtmlTags(w.who || ''),
-        systems: stripHtmlTags(w.systems || ''),
-        how: w.how || '',
-        pain: w.pain || '',
-        cadences: w.cadences || [cadence],
-        custom: !!w.custom,
-        subs: w.subs || [],
-      };
-      all.push({ cadence, w: entry });
-
-      if (entry.doToday) {
-        doCount++; doNames.push(entry.name);
-        doHrs += parseNumeric(entry.hrs);
-        doErr += parseNumeric(entry.errCost);
-        doOpt += parseNumeric(entry.optimization);
-      }
-      if (entry.wishToDo) {
-        wishCount++; wishNames.push(entry.name);
-        wishHrs += parseNumeric(entry.hrs);
-      }
-      if (!entry.doToday && !entry.wishToDo) {
-        notSelectedCount++; notSelectedNames.push(entry.name);
-      }
-    }
-  }
-
-  return {
-    all, doCount, wishCount, notSelectedCount,
-    doHrs, wishHrs, doErr, doOpt,
-    doNames, wishNames, notSelectedNames,
-    totalCount: all.length,
-  };
-}
-
-function flattenAssessmentToRows(a: AssessmentFull): Record<string, string>[] {
-  const p = a.profile || {};
-  const rows: Record<string, string>[] = [];
-
-  const profileCols: Record<string, string> = {
-    'Company': p.company || a.companyName || '',
-    'Industry': p.industry || '',
-    'Revenue': p.revenue || '',
-    'Entities': p.entities || '',
-    'Countries': p.countries || '',
-    'Currencies': Array.isArray(p.currencies) ? p.currencies.join('; ') : '',
-    'Team Size': p.teamSize || '',
-    'Banks': Array.isArray(p.banks) ? p.banks.join('; ') : '',
-    'Num Banks': p.numBanks || '',
-    'Num Accounts': p.numAccounts || '',
-    'ERP': p.erp || '',
-    'TMS': p.tms || '',
-    'Other Systems': Array.isArray(p.otherSystems) ? p.otherSystems.join('; ') : '',
-    'Payment Volume': p.paymentVolume || '',
-    'Credit Facilities': p.facilities || '',
-  };
-
-  const submitted = new Date(a.createdAt).toLocaleDateString();
-
-  for (const cadence of CADENCE_ORDER) {
-    const wfs = (a.workflowSelections || {})[cadence] || [];
-    const customs = (a.customWorkflows || {})[cadence] || [];
-    for (const w of [...(wfs as any[]), ...(customs as any[])]) {
-      // Parent workflow row
-      rows.push({
-        ...profileCols,
-        'Cadence': CADENCE_LABELS[cadence] || cadence,
-        'Type': 'Workflow',
-        'Parent Workflow': '',
-        'Workflow': w.name || '',
-        'Do Today': w.doToday ? 'Yes' : '',
-        'Wish To Do': w.wishToDo ? 'Yes' : '',
-        'Who': stripHtmlTags(w.who || ''),
-        'Systems': stripHtmlTags(w.systems || ''),
-        'How It Actually Works': stripHtmlTags(w.how || ''),
-        'Pain Points': stripHtmlTags(w.pain || ''),
-        'Hrs/Mo': w.hrs || '',
-        'Error Cost': w.errCost || w.err || '',
-        '$ Optimization': w.optimization || w.opt || '',
-        'Frequency': (w.cadences || [cadence]).map((c: string) => CADENCE_LABELS[c] || c).join(', '),
-        'Custom': w.custom ? 'Yes' : '',
-        'Submitted': submitted,
-      });
-
-      // Sub-workflow rows
-      const subs = w.subs || [];
-      for (const s of subs) {
-        rows.push({
-          ...profileCols,
-          'Cadence': CADENCE_LABELS[cadence] || cadence,
-          'Type': 'Sub-Workflow',
-          'Parent Workflow': w.name || '',
-          'Workflow': `\u21B3 ${s.name || ''}`,
-          'Do Today': s.doToday ? 'Yes' : '',
-          'Wish To Do': s.wishToDo ? 'Yes' : '',
-          'Who': '',
-          'Systems': '',
-          'How It Actually Works': stripHtmlTags(s.how || ''),
-          'Pain Points': stripHtmlTags(s.pain || ''),
-          'Hrs/Mo': '',
-          'Error Cost': '',
-          '$ Optimization': '',
-          'Frequency': '',
-          'Custom': '',
-          'Submitted': submitted,
-        });
-      }
-    }
-  }
-
-  return rows;
-}
-
-function generateCSV(rows: Record<string, string>[]): string {
-  if (rows.length === 0) return '';
-  const headers = Object.keys(rows[0]);
-  const lines = [
-    headers.map(h => escapeCSV(h)).join(','),
-    ...rows.map(row => headers.map(h => escapeCSV(row[h])).join(',')),
-  ];
-  return lines.join('\n');
-}
-
-function downloadCSV(content: string, filename: string) {
-  const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 // ── Detail View ──
 
@@ -453,9 +240,7 @@ export default function BackofficePage() {
       const res = await fetch(`/api/assessments?id=${id}`);
       if (!res.ok) return;
       const full: AssessmentFull = await res.json();
-      const rows = flattenAssessmentToRows(full);
-      const csv = generateCSV(rows);
-      downloadCSV(csv, `${(full.companyName || 'assessment').replace(/\s+/g, '-').toLowerCase()}.csv`);
+      await exportSingleAssessment(full);
     } catch (err) {
       console.error('Export failed:', err);
     }
@@ -469,9 +254,7 @@ export default function BackofficePage() {
           fetch(`/api/assessments?id=${a.id}`).then(r => r.json())
         )
       );
-      const rows = details.flatMap(flattenAssessmentToRows);
-      const csv = generateCSV(rows);
-      downloadCSV(csv, `all-assessments-${new Date().toISOString().slice(0, 10)}.csv`);
+      await exportAllAssessments(details);
     } catch (err) {
       console.error('Export all failed:', err);
     } finally {
@@ -497,7 +280,7 @@ export default function BackofficePage() {
             onClick={exportAll}
             disabled={exporting || assessments.length === 0}
           >
-            {exporting ? 'Exporting...' : 'Export All CSV'}
+            {exporting ? 'Exporting...' : 'Export All Excel'}
           </button>
         </div>
       </div>
@@ -534,7 +317,7 @@ export default function BackofficePage() {
                         style={{ padding: '4px 12px', fontSize: '12px' }}
                         onClick={(e) => { e.stopPropagation(); exportSingle(a.id); }}
                       >
-                        Export CSV
+                        Export Excel
                       </button>
                     </td>
                   </tr>
