@@ -16,7 +16,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .btn-save:hover { background: #059669; }
 .btn-danger { background: #ef4444; color: #fff; }
 .btn-danger:hover { background: #dc2626; }
-.btn-link { color: #94a3b8; text-decoration: none; font-size: 12px; padding: 8px 12px; transition: color 0.15s; font-weight: 500; }
+.btn-link { color: #cbd5e1; text-decoration: underline; text-underline-offset: 2px; font-size: 12px; padding: 8px 12px; transition: color 0.15s; font-weight: 500; }
 .btn-link:hover { color: #fff; }
 .top-bar-brand { display: flex; align-items: center; gap: 12px; }
 .nilus-logo { height: 32px; }

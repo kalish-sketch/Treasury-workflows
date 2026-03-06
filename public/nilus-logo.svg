@@ -1,15 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 48" fill="white">
-  <!-- Stylized tree/pagoda icon -->
-  <g transform="translate(4, 2)">
-    <!-- Top tier -->
-    <path d="M20 8 C20 8, 14 16, 8 16 C14 16, 20 14, 20 14 C20 14, 26 16, 32 16 C26 16, 20 8, 20 8Z" opacity="0.9"/>
-    <!-- Middle tier -->
-    <path d="M20 14 C20 14, 11 24, 4 24 C11 24, 20 21, 20 21 C20 21, 29 24, 36 24 C29 24, 20 14, 20 14Z" opacity="0.8"/>
-    <!-- Bottom tier -->
-    <path d="M20 21 C20 21, 8 33, 0 33 C8 33, 20 29, 20 29 C20 29, 32 33, 40 33 C32 33, 20 21, 20 21Z" opacity="0.7"/>
-    <!-- Trunk -->
-    <rect x="18" y="33" width="4" height="10" rx="1" opacity="0.6"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" fill="none">
+  <!-- Nilus brand mark (from nilus.com) scaled to fit 48px height -->
+  <g transform="translate(0, -2) scale(0.62)" fill="white">
+    <!-- Top tier - right -->
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M47.604 52.405C47.604 59.2 53.349 64.709 60.436 64.709V72C49.149 72 40 63.227 40 52.405H47.604Z"/>
+    <!-- Top tier - left -->
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M32.396 52.405C32.396 59.2 26.651 64.709 19.564 64.709V72C30.851 72 40 63.227 40 52.405H32.396Z"/>
+    <!-- Middle tier - right -->
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M47.604 27.342C47.604 41.13 59.463 52.405 74.218 52.405V59.696C55.377 59.696 40 45.265 40 27.342H47.604Z"/>
+    <!-- Middle tier - left -->
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M32.396 27.341C32.396 41.183 20.693 52.405 6.258 52.405V59.696C24.893 59.696 40 45.211 40 27.342L32.396 27.341Z"/>
+    <!-- Bottom tier - right -->
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M47.604 0C47.604 21.392 65.69 38.734 88 38.734V46.025C61.49 46.025 40 25.419 40 0H47.604Z"/>
+    <!-- Bottom tier - left -->
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M32.396 0C32.396 21.392 14.31 38.734 -8 38.734L-8 46.025C18.51 46.025 40 25.419 40 0H32.396Z"/>
   </g>
-  <!-- "nilus" text -->
-  <text x="52" y="34" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" font-size="28" font-weight="300" letter-spacing="2">nilus</text>
+  <!-- "nilus" wordmark -->
+  <text x="62" y="33" fill="white" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" font-size="26" font-weight="300" letter-spacing="2">nilus</text>
 </svg>
