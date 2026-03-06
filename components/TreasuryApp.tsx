@@ -8,13 +8,15 @@ import TopBar from './TopBar';
 import TabNav from './TabNav';
 import CompanyProfile, { CompanyProfileHandle } from './CompanyProfile';
 import WorkflowPanel from './WorkflowPanel';
+import AllWorkflowsPanel from './AllWorkflowsPanel';
 import SummaryPanel from './SummaryPanel';
 
 function deepCloneWorkflowData(): WorkflowDataMap {
   const raw = JSON.parse(JSON.stringify(WORKFLOW_DATA)) as WorkflowDataMap;
-  for (const cadence of Object.values(raw)) {
+  for (const [cadenceKey, cadence] of Object.entries(raw)) {
     for (const w of cadence.workflows) {
       w.subs = w.subs.map(s => ({ ...s, doToday: s.doToday ?? false, wishToDo: s.wishToDo ?? false }));
+      w.cadences = w.cadences || [cadenceKey];
     }
   }
   return raw;
@@ -31,6 +33,7 @@ function addDefaultsToWorkflowData(raw: Record<string, any>): WorkflowDataMap {
         ...w,
         doToday: false,
         wishToDo: false,
+        cadences: w.cadences || [key],
         subs: (w.subs || []).map((s: any) => ({ ...s, doToday: false, wishToDo: false })),
       })),
     };
@@ -45,6 +48,7 @@ export default function TreasuryApp() {
   const [customWorkflows, setCustomWorkflows] = useState<Record<string, Workflow[]>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const profileRef = useRef<CompanyProfileHandle>(null);
 
   // Try to fetch from API; if DB is empty or unavailable, keep static fallback
@@ -84,7 +88,7 @@ export default function TreasuryApp() {
     setWorkflowData(prev => {
       const next = { ...prev };
       const cadenceData = { ...next[cadence], workflows: next[cadence].workflows.map(w =>
-        w.id === id ? { ...w, doToday: val } : w
+        w.id === id ? { ...w, doToday: val, ...(val ? { wishToDo: false } : {}) } : w
       )};
       next[cadence] = cadenceData;
       return next;
@@ -92,7 +96,7 @@ export default function TreasuryApp() {
     setCustomWorkflows(prev => {
       const arr = prev[cadence];
       if (!arr) return prev;
-      return { ...prev, [cadence]: arr.map(w => w.id === id ? { ...w, doToday: val } : w) };
+      return { ...prev, [cadence]: arr.map(w => w.id === id ? { ...w, doToday: val, ...(val ? { wishToDo: false } : {}) } : w) };
     });
   }, []);
 
@@ -100,7 +104,7 @@ export default function TreasuryApp() {
     setWorkflowData(prev => {
       const next = { ...prev };
       const cadenceData = { ...next[cadence], workflows: next[cadence].workflows.map(w =>
-        w.id === id ? { ...w, wishToDo: val } : w
+        w.id === id ? { ...w, wishToDo: val, ...(val ? { doToday: false } : {}) } : w
       )};
       next[cadence] = cadenceData;
       return next;
@@ -108,7 +112,7 @@ export default function TreasuryApp() {
     setCustomWorkflows(prev => {
       const arr = prev[cadence];
       if (!arr) return prev;
-      return { ...prev, [cadence]: arr.map(w => w.id === id ? { ...w, wishToDo: val } : w) };
+      return { ...prev, [cadence]: arr.map(w => w.id === id ? { ...w, wishToDo: val, ...(val ? { doToday: false } : {}) } : w) };
     });
   }, []);
 
@@ -155,6 +159,7 @@ export default function TreasuryApp() {
       wishToDo: false,
       subs: [],
       custom: true,
+      cadences: [cadenceKey],
     };
 
     setCustomWorkflows(prev => ({
@@ -201,7 +206,7 @@ export default function TreasuryApp() {
   const toggleSubDo = useCallback((cadence: string, workflowId: string, subId: string, val: boolean) => {
     const update = (w: Workflow) => {
       if (w.id !== workflowId) return w;
-      return { ...w, subs: w.subs.map(s => s.id === subId ? { ...s, doToday: val } : s) };
+      return { ...w, subs: w.subs.map(s => s.id === subId ? { ...s, doToday: val, ...(val ? { wishToDo: false } : {}) } : s) };
     };
     setWorkflowData(prev => {
       const next = { ...prev };
@@ -218,7 +223,7 @@ export default function TreasuryApp() {
   const toggleSubWish = useCallback((cadence: string, workflowId: string, subId: string, val: boolean) => {
     const update = (w: Workflow) => {
       if (w.id !== workflowId) return w;
-      return { ...w, subs: w.subs.map(s => s.id === subId ? { ...s, wishToDo: val } : s) };
+      return { ...w, subs: w.subs.map(s => s.id === subId ? { ...s, wishToDo: val, ...(val ? { doToday: false } : {}) } : s) };
     };
     setWorkflowData(prev => {
       const next = { ...prev };
@@ -229,6 +234,21 @@ export default function TreasuryApp() {
       const arr = prev[cadence];
       if (!arr) return prev;
       return { ...prev, [cadence]: arr.map(update) };
+    });
+  }, []);
+
+  const updateCadences = useCallback((cadence: string, id: string, cadences: string[]) => {
+    setWorkflowData(prev => {
+      const next = { ...prev };
+      next[cadence] = { ...next[cadence], workflows: next[cadence].workflows.map(w =>
+        w.id === id ? { ...w, cadences } : w
+      )};
+      return next;
+    });
+    setCustomWorkflows(prev => {
+      const arr = prev[cadence];
+      if (!arr) return prev;
+      return { ...prev, [cadence]: arr.map(w => w.id === id ? { ...w, cadences } : w) };
     });
   }, []);
 
@@ -250,45 +270,74 @@ export default function TreasuryApp() {
     setCustomWorkflows({});
   }, []);
 
-  const submitAssessment = useCallback(async () => {
-    setSubmitting(true);
+  const buildPayload = useCallback(() => {
+    const profile = profileRef.current?.getProfile() || {
+      company: '', revenue: '', industry: '', entities: '', countries: '',
+      currencies: [], teamSize: '', numBanks: '', banks: [], numAccounts: '',
+      erp: '', tms: '', otherSystems: [], paymentVolume: '', facilities: '',
+    };
+
+    const wfSelections: Record<string, unknown[]> = {};
+    Object.keys(workflowData).forEach(cadence => {
+      wfSelections[cadence] = workflowData[cadence].workflows.map(w => ({
+        id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
+        hrs: w.hrs, errCost: w.err, optimization: w.opt,
+        how: w.how, pain: w.pain, who: w.who, systems: w.systems,
+        cadences: w.cadences,
+        subs: (w.subs || []).map(s => ({ id: s.id, name: s.name })),
+      }));
+    });
+
+    const customWfs: Record<string, unknown[]> = {};
+    Object.keys(customWorkflows).forEach(cadence => {
+      customWfs[cadence] = (customWorkflows[cadence] || []).map(w => ({
+        id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
+        hrs: w.hrs, errCost: w.err, optimization: w.opt,
+        how: w.how, pain: w.pain, who: w.who, systems: w.systems,
+        cadences: w.cadences, custom: true, subs: [],
+      }));
+    });
+
+    return {
+      companyName: profile.company || '',
+      profile,
+      workflowSelections: wfSelections,
+      customWorkflows: customWfs,
+    };
+  }, [workflowData, customWorkflows]);
+
+  const saveAssessment = useCallback(async () => {
+    setSaving(true);
     try {
-      const profile = profileRef.current?.getProfile() || {
-        company: '', revenue: '', industry: '', entities: '', countries: '',
-        currencies: [], teamSize: '', numBanks: '', banks: [], numAccounts: '',
-        erp: '', tms: '', otherSystems: [], paymentVolume: '', facilities: '',
-      };
-
-      const wfSelections: Record<string, unknown[]> = {};
-      Object.keys(workflowData).forEach(cadence => {
-        wfSelections[cadence] = workflowData[cadence].workflows.map(w => ({
-          id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
-          hrs: w.hrs, errCost: w.err, optimization: w.opt,
-          how: w.how, pain: w.pain,
-          subs: (w.subs || []).map(s => ({ id: s.id, name: s.name })),
-        }));
-      });
-
-      const customWfs: Record<string, unknown[]> = {};
-      Object.keys(customWorkflows).forEach(cadence => {
-        customWfs[cadence] = (customWorkflows[cadence] || []).map(w => ({
-          id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
-          hrs: w.hrs, errCost: w.err, optimization: w.opt,
-          how: w.how, pain: w.pain, custom: true, subs: [],
-        }));
-      });
-
+      const payload = buildPayload();
       const res = await fetch('/api/assessments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companyName: profile.company || '',
-          profile,
-          workflowSelections: wfSelections,
-          customWorkflows: customWfs,
-        }),
+        body: JSON.stringify(payload),
       });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `HTTP ${res.status}`);
+      }
+      alert('Saved!');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      alert(`Error saving: ${msg}`);
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  }, [buildPayload]);
 
+  const submitAssessment = useCallback(async () => {
+    setSubmitting(true);
+    try {
+      const payload = buildPayload();
+      const res = await fetch('/api/assessments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
         throw new Error(errBody.error || `HTTP ${res.status}`);
@@ -301,7 +350,7 @@ export default function TreasuryApp() {
     } finally {
       setSubmitting(false);
     }
-  }, [workflowData, customWorkflows]);
+  }, [buildPayload]);
 
   const printSummary = useCallback(() => {
     window.print();
@@ -313,10 +362,34 @@ export default function TreasuryApp() {
 
   const cadenceKeys = Object.keys(workflowData);
 
+  // Derive linked workflows: for each tab, find workflows from OTHER cadences that include this tab
+  const linkedWorkflowsByCadence = useMemo(() => {
+    const result: Record<string, { workflow: Workflow; sourceCadence: string }[]> = {};
+    for (const targetCadence of cadenceKeys) {
+      const linked: { workflow: Workflow; sourceCadence: string }[] = [];
+      for (const sourceCadence of cadenceKeys) {
+        if (sourceCadence === targetCadence) continue;
+        const allWfs = [
+          ...workflowData[sourceCadence].workflows,
+          ...(customWorkflows[sourceCadence] || []),
+        ];
+        for (const w of allWfs) {
+          if (w.cadences && w.cadences.includes(targetCadence)) {
+            linked.push({ workflow: w, sourceCadence });
+          }
+        }
+      }
+      result[targetCadence] = linked;
+    }
+    return result;
+  }, [workflowData, customWorkflows, cadenceKeys]);
+
   return (
     <>
       <TopBar
         onReset={resetAll}
+        onSave={saveAssessment}
+        saving={saving}
         onSubmit={submitAssessment}
         submitting={submitting}
         onViewRecommendations={() => switchTab('summary')}
@@ -334,6 +407,8 @@ export default function TreasuryApp() {
               cadenceKey={key}
               cadence={workflowData[key]}
               customWorkflows={customWorkflows[key] || []}
+              linkedWorkflows={linkedWorkflowsByCadence[key] || []}
+              allCadenceKeys={cadenceKeys}
               onToggleDo={toggleDo}
               onToggleWish={toggleWish}
               onUpdateMetric={updateMetric}
@@ -342,9 +417,17 @@ export default function TreasuryApp() {
               onToggleSubDo={toggleSubDo}
               onToggleSubWish={toggleSubWish}
               onAddSub={addSub}
+              onUpdateCadences={updateCadences}
             />
           </div>
         ))}
+
+        <div className="tab-panel" style={{ display: activeTab === 'all' ? 'block' : 'none' }}>
+          <AllWorkflowsPanel
+            workflowData={workflowData}
+            customWorkflows={customWorkflows}
+          />
+        </div>
 
         <div className="tab-panel" style={{ display: activeTab === 'summary' ? 'block' : 'none' }}>
           <SummaryPanel

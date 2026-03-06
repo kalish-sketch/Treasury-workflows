@@ -12,8 +12,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .btn-secondary:hover { background: rgba(255,255,255,0.25); }
 .btn-ghost { background: transparent; color: #fbbf24; border: 1px solid #fbbf24; }
 .btn-ghost:hover { background: rgba(251,191,36,0.1); }
+.btn-save { background: #10b981; color: #fff; }
+.btn-save:hover { background: #059669; }
 .btn-danger { background: #ef4444; color: #fff; }
 .btn-danger:hover { background: #dc2626; }
+.btn-link { color: #cbd5e1; text-decoration: underline; text-underline-offset: 2px; font-size: 12px; padding: 8px 12px; transition: color 0.15s; font-weight: 500; }
+.btn-link:hover { color: #fff; }
+.top-bar-brand { display: flex; align-items: center; gap: 12px; }
+.nilus-logo { height: 32px; }
 
 .main-content { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
 
@@ -135,6 +141,11 @@ tr.sub-row:hover { background: #f0f4ff; }
 .summary-section-title { font-size: 14px; font-weight: 600; margin: 16px 0 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.1); }
 .summary-section-title.do-title { color: #fbbf24; }
 .summary-section-title.wish-title { color: #10b981; }
+.summary-section-title.not-selected-title { color: #94a3b8; }
+.not-selected-list { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }
+.not-selected-cadence { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+.not-selected-cadence:last-child { margin-bottom: 0; }
+.not-selected-names { color: #94a3b8; line-height: 1.4; }
 
 .agent-recs { margin-top: 20px; }
 .agent-recs h3 { font-size: 14px; margin-bottom: 12px; color: #fbbf24; }
@@ -174,6 +185,64 @@ tr.sub-row:hover { background: #f0f4ff; }
 .bo-tag { display: inline-block; padding: 1px 8px; border-radius: 3px; font-size: 10px; font-weight: 600; }
 .bo-tag-do { background: #fef3c7; color: #92400e; }
 .bo-tag-wish { background: #d1fae5; color: #065f46; }
+
+/* Backoffice summary grid */
+.bo-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px; }
+.bo-summary-box { background: #f0f4ff; border-radius: 8px; padding: 10px; text-align: center; }
+.bo-summary-num { font-size: 20px; font-weight: 700; }
+.bo-summary-label { font-size: 10px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+
+/* Backoffice all-workflows table */
+.bo-all-wf-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.bo-all-wf-table th { background: #f0f4ff; color: #374151; padding: 6px 8px; text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; border-bottom: 2px solid #e5e7eb; }
+.bo-all-wf-table td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+.bo-all-wf-table tr:hover { background: #f8f9fa; }
+
+/* ─── All Workflows Tab ─── */
+.cadence-badge-small { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 600; color: #fff; white-space: nowrap; }
+.frequency-cell { padding: 4px 6px !important; }
+.freq-checkboxes { display: flex; gap: 4px; flex-wrap: wrap; }
+.freq-label { display: inline-flex; align-items: center; gap: 2px; cursor: pointer; font-size: 10px; }
+.freq-cb { width: 14px; height: 14px; cursor: pointer; }
+.freq-abbr { font-weight: 700; font-size: 10px; }
+.all-wf-unselected td { opacity: 0.5; }
+.all-wf-check { font-size: 13px; font-weight: 700; }
+.all-wf-check.do { color: #fbbf24; }
+.all-wf-check.wish { color: #10b981; }
+.all-wf-check.empty { color: #d1d5db; }
+.all-wf-text { font-size: 11px; line-height: 1.4; color: #374151; white-space: pre-wrap; word-break: break-word; }
+.all-wf-text.pain-text { color: #b91c1c; }
+.all-wf-metric { font-size: 11px; font-weight: 600; }
+.all-wf-metric.hrs { color: #1e40af; }
+.all-wf-metric.err { color: #b91c1c; }
+.all-wf-metric.opt { color: #047857; }
+
+/* ─── Workflow Tag Cell (editable who/systems) ─── */
+.wf-tag-cell { cursor: pointer; min-height: 24px; }
+.wf-tag-cell:hover { background: rgba(52,152,219,0.05); border-radius: 4px; }
+.wf-tag-empty { font-size: 10px; color: #9ca3af; font-style: italic; }
+.wf-tag-edit { display: flex; flex-direction: column; gap: 4px; }
+.wf-tag-list { display: flex; flex-wrap: wrap; gap: 2px; }
+.wf-tag-pill { position: relative; cursor: default; }
+.wf-tag-remove { cursor: pointer; margin-left: 3px; font-size: 10px; font-weight: 700; opacity: 0.5; }
+.wf-tag-remove:hover { opacity: 1; color: #ef4444; }
+.wf-tag-input { width: 100%; border: 1px solid #ddd; border-radius: 4px; font-size: 10px; padding: 3px 6px; font-family: inherit; margin-top: 2px; }
+.wf-tag-input:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.12); }
+
+/* ─── Frequency Pills ─── */
+.freq-cell { vertical-align: middle; }
+.freq-pills { display: flex; gap: 3px; flex-wrap: wrap; }
+.freq-pill { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 20px; font-size: 9px; font-weight: 700; border-radius: 3px; border: 1px solid #475569; background: transparent; color: #94a3b8; cursor: pointer; transition: all 0.15s; padding: 0; }
+.freq-pill:hover:not(:disabled) { border-color: #cbd5e1; color: #fff; }
+.freq-pill-active { color: #fff; border-color: transparent; }
+.freq-pill-source { opacity: 0.9; cursor: default; }
+.freq-pill:disabled { cursor: default; }
+
+/* ─── Linked Workflows ─── */
+.linked-divider-row td { background: #f1f5f9; color: #64748b; font-size: 11px; font-style: italic; font-weight: 500; padding: 6px 10px; border-top: 2px solid #e2e8f0; letter-spacing: 0.3px; }
+.linked-row { background: #fafbfd; }
+.linked-row td { opacity: 0.85; border-left: 3px solid transparent; }
+.linked-row:first-child td { border-left-color: #94a3b8; }
 
 @media (max-width: 1200px) {
   .main-content { padding: 16px; }

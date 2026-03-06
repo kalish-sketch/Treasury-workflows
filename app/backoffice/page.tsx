@@ -23,33 +23,122 @@ interface AssessmentFull {
 type SortField = 'companyName' | 'createdAt';
 type SortDir = 'asc' | 'desc';
 
+const CADENCE_ORDER = ['daily', 'weekly', 'monthly', 'quarterly', 'annual'];
+const CADENCE_LABELS: Record<string, string> = {
+  daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly',
+  quarterly: 'Quarterly', annual: 'Annual',
+};
+const CADENCE_COLORS: Record<string, string> = {
+  daily: '#e74c3c', weekly: '#e67e22', monthly: '#3498db', quarterly: '#8e44ad', annual: '#16a085',
+};
+
 function escapeCSV(val: string): string {
   if (!val) return '';
   const s = String(val).replace(/"/g, '""');
   return `"${s}"`;
 }
 
-function flattenAssessmentToRow(a: AssessmentFull) {
-  const p = a.profile || {};
-  let doCount = 0;
-  let wishCount = 0;
+function parseNumeric(val: string): number {
+  if (!val || val === '—' || val === '-') return 0;
+  const cleaned = val.replace(/[,$\/yr\/mo\s]/g, '');
+  const parts = cleaned.match(/[\d.]+[KkMm]?/g);
+  if (!parts || parts.length === 0) return 0;
+  const toNum = (s: string): number => {
+    const upper = s.toUpperCase();
+    if (upper.endsWith('M')) return parseFloat(s) * 1_000_000;
+    if (upper.endsWith('K')) return parseFloat(s) * 1_000;
+    return parseFloat(s) || 0;
+  };
+  const nums = parts.map(toNum);
+  return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
+
+function formatCompact(val: number): string {
+  if (val === 0) return '—';
+  if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
+  if (val >= 1_000) return `$${(val / 1_000).toFixed(0)}K`;
+  return val.toFixed(0);
+}
+
+function stripHtmlTags(html: string): string {
+  if (!html) return '';
+  return html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+}
+
+interface WorkflowEntry {
+  name: string;
+  doToday: boolean;
+  wishToDo: boolean;
+  hrs: string;
+  errCost: string;
+  optimization: string;
+  who: string;
+  systems: string;
+  cadences: string[];
+}
+
+function collectAllWorkflows(a: AssessmentFull) {
+  const all: { cadence: string; w: WorkflowEntry }[] = [];
+  let doCount = 0, wishCount = 0, notSelectedCount = 0;
+  let doHrs = 0, wishHrs = 0, doErr = 0, doOpt = 0;
   const doNames: string[] = [];
   const wishNames: string[] = [];
+  const notSelectedNames: string[] = [];
 
-  for (const wfs of Object.values(a.workflowSelections || {})) {
-    for (const w of (wfs as any[])) {
-      if (w.doToday) { doCount++; doNames.push(w.name); }
-      if (w.wishToDo) { wishCount++; wishNames.push(w.name); }
-    }
-  }
-  for (const wfs of Object.values(a.customWorkflows || {})) {
-    for (const w of (wfs as any[])) {
-      if (w.doToday) { doCount++; doNames.push(w.name); }
-      if (w.wishToDo) { wishCount++; wishNames.push(w.name); }
+  for (const cadence of CADENCE_ORDER) {
+    const wfs = (a.workflowSelections || {})[cadence] || [];
+    const customs = (a.customWorkflows || {})[cadence] || [];
+    for (const w of [...(wfs as any[]), ...(customs as any[])]) {
+      const entry: WorkflowEntry = {
+        name: w.name,
+        doToday: !!w.doToday,
+        wishToDo: !!w.wishToDo,
+        hrs: w.hrs || '',
+        errCost: w.errCost || w.err || '',
+        optimization: w.optimization || w.opt || '',
+        who: stripHtmlTags(w.who || ''),
+        systems: stripHtmlTags(w.systems || ''),
+        cadences: w.cadences || [cadence],
+      };
+      all.push({ cadence, w: entry });
+
+      if (entry.doToday) {
+        doCount++; doNames.push(entry.name);
+        doHrs += parseNumeric(entry.hrs);
+        doErr += parseNumeric(entry.errCost);
+        doOpt += parseNumeric(entry.optimization);
+      }
+      if (entry.wishToDo) {
+        wishCount++; wishNames.push(entry.name);
+        wishHrs += parseNumeric(entry.hrs);
+      }
+      if (!entry.doToday && !entry.wishToDo) {
+        notSelectedCount++; notSelectedNames.push(entry.name);
+      }
     }
   }
 
   return {
+    all, doCount, wishCount, notSelectedCount,
+    doHrs, wishHrs, doErr, doOpt,
+    doNames, wishNames, notSelectedNames,
+    totalCount: all.length,
+  };
+}
+
+function flattenAssessmentToRow(a: AssessmentFull) {
+  const p = a.profile || {};
+  const stats = collectAllWorkflows(a);
+
+  const cadenceWorkflows: Record<string, WorkflowEntry[]> = {};
+  for (const cadence of CADENCE_ORDER) {
+    cadenceWorkflows[cadence] = stats.all.filter(e => e.cadence === cadence).map(e => e.w);
+  }
+
+  // Multi-frequency workflows
+  const multiFreq = stats.all.filter(e => e.w.cadences.length > 1);
+
+  const row: Record<string, string> = {
     'Company': p.company || a.companyName || '',
     'Industry': p.industry || '',
     'Revenue': p.revenue || '',
@@ -65,12 +154,40 @@ function flattenAssessmentToRow(a: AssessmentFull) {
     'Other Systems': Array.isArray(p.otherSystems) ? p.otherSystems.join('; ') : '',
     'Payment Volume': p.paymentVolume || '',
     'Facilities': p.facilities || '',
-    'Workflows Do Today': String(doCount),
-    'Workflows Wish To Do': String(wishCount),
-    'Do Today Names': doNames.join('; '),
-    'Wish To Do Names': wishNames.join('; '),
-    'Submitted': new Date(a.createdAt).toLocaleDateString(),
+
+    // Summary metrics
+    'Total Workflows': String(stats.totalCount),
+    'Workflows Do Today': String(stats.doCount),
+    'Workflows Wish To Do': String(stats.wishCount),
+    'Workflows Not Selected': String(stats.notSelectedCount),
+    'Do Today Names': stats.doNames.join('; '),
+    'Wish To Do Names': stats.wishNames.join('; '),
+    'Not Selected Names': stats.notSelectedNames.join('; '),
+    'Total Hrs/Mo (Do Today)': stats.doHrs > 0 ? String(Math.round(stats.doHrs)) : '',
+    'Total Hrs/Mo (Wish)': stats.wishHrs > 0 ? String(Math.round(stats.wishHrs)) : '',
+    'Error Cost Exposure (Do Today)': stats.doErr > 0 ? formatCompact(stats.doErr) : '',
+    'Optimization Potential (Do Today)': stats.doOpt > 0 ? formatCompact(stats.doOpt) : '',
   };
+
+  // Add all workflows per cadence with their details
+  for (const cadence of CADENCE_ORDER) {
+    const label = cadence.charAt(0).toUpperCase() + cadence.slice(1);
+    const wfs = cadenceWorkflows[cadence];
+    row[`${label} Workflows`] = wfs.map(w => w.name).join('; ');
+    row[`${label} Do Today`] = wfs.filter(w => w.doToday).map(w => w.name).join('; ');
+    row[`${label} Wish To Do`] = wfs.filter(w => w.wishToDo).map(w => w.name).join('; ');
+    row[`${label} Hrs/Mo`] = wfs.map(w => `${w.name}: ${w.hrs || '—'}`).join('; ');
+    row[`${label} Error Cost`] = wfs.map(w => `${w.name}: ${w.errCost || '—'}`).join('; ');
+    row[`${label} Optimization`] = wfs.map(w => `${w.name}: ${w.optimization || '—'}`).join('; ');
+  }
+
+  // Multi-frequency assignments
+  row['Multi-Frequency Workflows'] = multiFreq.map(e =>
+    `${e.w.name} (${e.w.cadences.map(c => CADENCE_LABELS[c] || c).join(', ')})`
+  ).join('; ');
+
+  row['Submitted'] = new Date(a.createdAt).toLocaleDateString();
+  return row;
 }
 
 function generateCSV(rows: Record<string, string>[]): string {
@@ -97,13 +214,45 @@ function downloadCSV(content: string, filename: string) {
 
 function DetailView({ detail }: { detail: AssessmentFull }) {
   const p = detail.profile || {};
-  const cadenceLabels: Record<string, string> = {
-    daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly',
-    quarterly: 'Quarterly', annual: 'Annual',
-  };
+  const stats = collectAllWorkflows(detail);
 
   return (
     <div className="bo-detail">
+      {/* Summary Section */}
+      <div className="bo-detail-section">
+        <h4>Summary</h4>
+        <div className="bo-summary-grid">
+          <div className="bo-summary-box">
+            <div className="bo-summary-num" style={{ color: '#fbbf24' }}>{stats.doCount}</div>
+            <div className="bo-summary-label">Do Today</div>
+          </div>
+          <div className="bo-summary-box">
+            <div className="bo-summary-num" style={{ color: '#10b981' }}>{stats.wishCount}</div>
+            <div className="bo-summary-label">Wish To Do</div>
+          </div>
+          <div className="bo-summary-box">
+            <div className="bo-summary-num" style={{ color: '#94a3b8' }}>{stats.notSelectedCount}</div>
+            <div className="bo-summary-label">Not Selected</div>
+          </div>
+          <div className="bo-summary-box">
+            <div className="bo-summary-num" style={{ color: '#60a5fa' }}>{stats.totalCount}</div>
+            <div className="bo-summary-label">Total</div>
+          </div>
+          <div className="bo-summary-box">
+            <div className="bo-summary-num" style={{ color: '#60a5fa' }}>{stats.doHrs > 0 ? Math.round(stats.doHrs) : '—'}</div>
+            <div className="bo-summary-label">Hrs/Mo (Do)</div>
+          </div>
+          <div className="bo-summary-box">
+            <div className="bo-summary-num" style={{ color: '#ef4444' }}>{stats.doErr > 0 ? formatCompact(stats.doErr) : '—'}</div>
+            <div className="bo-summary-label">Error Cost</div>
+          </div>
+          <div className="bo-summary-box">
+            <div className="bo-summary-num" style={{ color: '#10b981' }}>{stats.doOpt > 0 ? formatCompact(stats.doOpt) : '—'}</div>
+            <div className="bo-summary-label">Optimization</div>
+          </div>
+        </div>
+      </div>
+
       {/* Profile */}
       <div className="bo-detail-section">
         <h4>Company Profile</h4>
@@ -125,26 +274,70 @@ function DetailView({ detail }: { detail: AssessmentFull }) {
         </div>
       </div>
 
-      {/* Workflow Selections */}
-      {Object.entries(detail.workflowSelections || {}).map(([cadence, wfs]) => {
-        const selected = (wfs as any[]).filter((w: any) => w.doToday || w.wishToDo);
-        if (selected.length === 0) return null;
-        return (
-          <div key={cadence} className="bo-detail-section">
-            <h4>{cadenceLabels[cadence] || cadence} Workflows</h4>
-            <ul className="bo-wf-list">
-              {selected.map((w: any) => (
-                <li key={w.id}>
-                  <span className="bo-wf-name">{w.name}</span>
+      {/* All Workflows Table */}
+      <div className="bo-detail-section">
+        <h4>All Workflows</h4>
+        <table className="bo-all-wf-table">
+          <thead>
+            <tr>
+              <th>Cadence</th>
+              <th>Workflow</th>
+              <th>Status</th>
+              <th>Who</th>
+              <th>Systems</th>
+              <th>Hrs/Mo</th>
+              <th>Error Cost</th>
+              <th>Optimization</th>
+              <th>Frequencies</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stats.all.map(({ cadence, w }, i) => (
+              <tr key={i}>
+                <td>
+                  <span
+                    style={{
+                      display: 'inline-block', padding: '1px 6px', borderRadius: '8px',
+                      fontSize: '9px', fontWeight: 600, color: '#fff',
+                      background: CADENCE_COLORS[cadence] || '#666',
+                    }}
+                  >
+                    {CADENCE_LABELS[cadence]}
+                  </span>
+                </td>
+                <td><span className="bo-wf-name">{w.name}</span></td>
+                <td>
                   {w.doToday && <span className="bo-tag bo-tag-do">Do Today</span>}
-                  {w.wishToDo && <span className="bo-tag bo-tag-wish">Wish To Do</span>}
-                  {w.hrs && w.hrs !== '—' && <span className="bo-wf-meta">{w.hrs} hrs/mo</span>}
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-      })}
+                  {w.wishToDo && <span className="bo-tag bo-tag-wish">Wish</span>}
+                  {!w.doToday && !w.wishToDo && <span style={{ color: '#9ca3af', fontSize: '10px' }}>—</span>}
+                </td>
+                <td style={{ fontSize: '10px' }}>{w.who || '—'}</td>
+                <td style={{ fontSize: '10px' }}>{w.systems || '—'}</td>
+                <td style={{ fontSize: '11px', fontWeight: 600, color: '#1e40af' }}>{w.hrs || '—'}</td>
+                <td style={{ fontSize: '11px', color: '#b91c1c' }}>{w.errCost || '—'}</td>
+                <td style={{ fontSize: '11px', color: '#047857' }}>{w.optimization || '—'}</td>
+                <td style={{ fontSize: '10px' }}>
+                  {w.cadences.map(c => CADENCE_LABELS[c] || c).join(', ')}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Not Selected Workflows */}
+      {stats.notSelectedCount > 0 && (
+        <div className="bo-detail-section">
+          <h4>Not Selected Workflows ({stats.notSelectedCount})</h4>
+          <ul className="bo-wf-list">
+            {stats.notSelectedNames.map((name, i) => (
+              <li key={i}>
+                <span className="bo-wf-name" style={{ color: '#9ca3af' }}>{name}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Custom Workflows */}
       {Object.entries(detail.customWorkflows || {}).some(([, wfs]) => (wfs as any[]).length > 0) && (
@@ -154,7 +347,7 @@ function DetailView({ detail }: { detail: AssessmentFull }) {
             if (!(wfs as any[]).length) return null;
             return (
               <div key={cadence}>
-                <h5 style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{cadenceLabels[cadence] || cadence}</h5>
+                <h5 style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{CADENCE_LABELS[cadence] || cadence}</h5>
                 <ul className="bo-wf-list">
                   {(wfs as any[]).map((w: any) => (
                     <li key={w.id}>

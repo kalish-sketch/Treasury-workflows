@@ -161,6 +161,21 @@ export const WORKFLOW_DATA: WorkflowDataMap = {
         pain:"LCs tracked in spreadsheet with manual expiration monitoring. A missed renewal = supply chain disruption.",
         hrs:"3–5", err:"$100K–1M supply chain disruption from missed LC renewal", opt:"$20K–50K/yr in fee optimization",
         doToday:false, wishToDo:false, subs:[]
+      },
+      { id:"w7", name:"52-Week Rolling Cash Forecast", timeEst:"~1–3 days/month (updated monthly)",
+        who:'<span class="who-tag who-analyst">Treasury Analyst</span> <span class="who-tag who-fpa">FP&A</span> <span class="who-tag who-controller">Controller</span> <span class="who-tag who-treasurer">Treasurer</span>',
+        systems:'<span class="sys-tag">Excel</span> <span class="sys-tag">ERP</span> <span class="sys-tag">Email</span> <span class="sys-tag">TMS</span>',
+        how:"Build and maintain a rolling 12-month (52-week) cash forecast using the indirect method — start from projected P&L and adjust for non-cash items, working capital changes, capex, debt service, and one-offs. Update monthly with actuals. First 13 weeks typically at weekly granularity (from the 13-week model), weeks 14–52 at monthly granularity. Consolidate across entities. Present to CFO, board, and lenders.",
+        pain:"Completely different methodology from the 13-week (indirect vs. direct). Bridging the two forecasts is a nightmare — they never reconcile. Monthly granularity hides timing risks. Lenders demand it but the data quality degrades past week 13. Scenario analysis is manual. Most companies maintain a static annual budget and call it a 'forecast' — not a true rolling model.",
+        hrs:"16–30", err:"$1M–10M+ from misstated strategic liquidity position; covenant breach risk", opt:"$200K–500K/yr from better capital allocation and reduced borrowing costs",
+        doToday:false, wishToDo:false,
+        subs:[
+          {id:"w7s1",name:"Monthly Actuals Refresh & Roll-Forward",how:"Pull actual monthly results from ERP/GL. Replace forecast month with actuals. Extend forecast by one month to maintain 12-month rolling window. Reconcile to 13-week model for overlap period.",pain:"Actuals available 5–10 business days after month-end. Forecast goes stale while waiting. Reconciling to 13-week direct forecast is a manual, time-consuming exercise."},
+          {id:"w7s2",name:"Indirect-to-Direct Method Bridge",how:"Convert P&L-based indirect forecast into cash flow components. Adjust for depreciation, amortization, stock comp, working capital changes, deferred revenue. Map to direct cash categories for consistency with 13-week.",pain:"The bridge between indirect and direct methods is the #1 source of forecast error. Non-cash adjustments are judgment calls. Working capital timing is guesswork past 13 weeks."},
+          {id:"w7s3",name:"Scenario Analysis (Base / Upside / Downside)",how:"Build 3 scenarios: base case, optimistic (accelerated collections, delayed capex), pessimistic (revenue shortfall, customer loss, rate increase). Each scenario requires manual cell adjustments across the model.",pain:"Takes 4–8 hours per scenario. CFO and board want updated scenarios quarterly but the manual effort means they're often stale. No Monte Carlo or probability weighting."},
+          {id:"w7s4",name:"Lender & Board Reporting Package",how:"Format the 52-week forecast into lender-required templates. Add covenant compliance projections. Create executive summary with key assumptions and risks. Prepare board deck slides.",pain:"Every lender has a different template. Board wants a narrative, not just numbers. Preparing the package is 30–40% of total forecast effort. Version control across reviewers is chaotic."},
+          {id:"w7s5",name:"Annual Budget Alignment & Variance",how:"Compare rolling 52-week forecast to annual budget. Identify and explain variances. Update full-year outlook. Feed into quarterly earnings guidance preparation.",pain:"Budget was set months ago with different assumptions. Explaining variances requires going back to original budget assumptions. Rolling forecast and budget are maintained in separate workbooks."}
+        ]
       }
     ]
   },

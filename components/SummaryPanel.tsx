@@ -50,6 +50,14 @@ function emptyBucket(): BucketMetrics {
   return { count: 0, hrs: 0, err: 0, opt: 0, ids: [] };
 }
 
+const CADENCE_LABELS: Record<string, string> = {
+  daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', quarterly: 'Quarterly', annual: 'Annual',
+};
+
+const CADENCE_COLORS: Record<string, string> = {
+  daily: '#e74c3c', weekly: '#e67e22', monthly: '#3498db', quarterly: '#8e44ad', annual: '#16a085',
+};
+
 export default function SummaryPanel({
   workflowData,
   customWorkflows,
@@ -63,10 +71,16 @@ export default function SummaryPanel({
   const wishBucket = emptyBucket();
   let totalWorkflows = 0;
 
+  // Track not-selected workflows grouped by cadence
+  const notSelectedByCadence: Record<string, string[]> = {};
+  let notSelectedCount = 0;
+
   Object.keys(workflowData).forEach(cadence => {
     const all = [...workflowData[cadence].workflows, ...(customWorkflows[cadence] || [])];
+    notSelectedByCadence[cadence] = [];
     all.forEach(w => {
       totalWorkflows++;
+      const isSelected = w.doToday || w.wishToDo;
       if (w.doToday) {
         doBucket.count++;
         doBucket.hrs += parseNumeric(w.hrs);
@@ -80,6 +94,10 @@ export default function SummaryPanel({
         wishBucket.err += parseNumeric(w.err);
         wishBucket.opt += parseNumeric(w.opt);
         wishBucket.ids.push(w.id);
+      }
+      if (!isSelected) {
+        notSelectedCount++;
+        notSelectedByCadence[cadence].push(w.name);
       }
     });
   });
@@ -138,17 +156,47 @@ export default function SummaryPanel({
           </div>
         </div>
 
-        {/* ── Overview ── */}
-        <div className="metrics-grid" style={{ marginTop: '8px' }}>
+        {/* ── Not Selected Section ── */}
+        <h3 className="summary-section-title not-selected-title">Not Selected</h3>
+        <div className="metrics-grid" style={{ marginBottom: '12px' }}>
+          <div className="metric-box" style={{ background: 'rgba(255,255,255,0.04)' }}>
+            <div className="big" style={{ color: '#94a3b8' }}>{notSelectedCount}</div>
+            <div className="label">Workflows Not Selected</div>
+          </div>
           <div className="metric-box blue">
             <div className="big">{totalWorkflows}</div>
-            <div className="label">Total Workflows Mapped</div>
+            <div className="label">Total Workflows Available</div>
+          </div>
+          <div className="metric-box gold">
+            <div className="big">{allSelected.length}</div>
+            <div className="label">Total Selected</div>
           </div>
           <div className="metric-box red">
             <div className="big">{relevantAgents.length}</div>
             <div className="label">Recommended Agents</div>
           </div>
         </div>
+
+        {notSelectedCount > 0 && (
+          <div className="not-selected-list">
+            {Object.entries(notSelectedByCadence).map(([cadence, names]) => {
+              if (names.length === 0) return null;
+              return (
+                <div key={cadence} className="not-selected-cadence">
+                  <span
+                    className="cadence-badge-small"
+                    style={{ background: CADENCE_COLORS[cadence] || '#666' }}
+                  >
+                    {CADENCE_LABELS[cadence] || cadence}
+                  </span>
+                  <span className="not-selected-names">
+                    {names.join(', ')}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {!hasSelections ? (
           <p style={{ color: '#94a3b8', fontSize: '14px', textAlign: 'center', padding: '20px' }}>
