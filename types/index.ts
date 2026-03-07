@@ -23,6 +23,8 @@ export interface Workflow {
   subs: SubWorkflow[];
   custom?: boolean;
   cadences?: string[]; // multi-frequency: which cadences this workflow applies to
+  category?: string;   // e.g. "FX Management", "Cash Management"
+  visible?: boolean;   // if false, hidden from front book (default: true)
 }
 
 export interface CadenceData {

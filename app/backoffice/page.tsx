@@ -8,6 +8,7 @@ import {
   collectAllWorkflows, exportSingleAssessment, exportAllAssessments,
   type AssessmentFull,
 } from '@/lib/exportExcel';
+import { WORKFLOW_DATA } from '@/data/workflows';
 
 interface AssessmentSummary {
   id: string;
@@ -18,6 +19,324 @@ interface AssessmentSummary {
 
 type SortField = 'companyName' | 'createdAt';
 type SortDir = 'asc' | 'desc';
+type BackofficeTab = 'assessments' | 'workflows';
+type WsSortField = 'name' | 'category' | 'cadence';
+
+// ── Category color map ──
+const CATEGORY_COLORS: Record<string, string> = {
+  'Cash Management': '#3b82f6',
+  'Payment Operations': '#ef4444',
+  'FX Management': '#8b5cf6',
+  'Risk & Compliance': '#f59e0b',
+  'Liquidity Management': '#06b6d4',
+  'Bank Relationship Management': '#10b981',
+  'Reporting & Analysis': '#6366f1',
+  'Strategic Planning': '#0ea5e9',
+  'Fraud Prevention': '#dc2626',
+  'SOX Compliance & Controls': '#d97706',
+  'Bank Account Management (EBAM)': '#059669',
+  'Supply Chain Finance': '#7c3aed',
+  'Interest Rate Risk': '#2563eb',
+  'Real-Time Treasury': '#0891b2',
+  'ESG / Sustainability': '#16a34a',
+  'Commodity Risk': '#ea580c',
+  'Cross-Border Cash Management': '#4f46e5',
+  'M&A Integration': '#9333ea',
+  'Business Continuity': '#b91c1c',
+  'Shared Services & In-House Bank': '#0d9488',
+};
+
+// ── Flat workflow type for the selector ──
+interface FlatWorkflow {
+  id: string;
+  name: string;
+  cadence: string;
+  category: string;
+  visible: boolean;
+  timeEst: string;
+  subsCount: number;
+  subs: Array<{ id: string; name: string; how: string; pain: string }>;
+}
+
+// ── Workflow Selector Tab ──
+
+function WorkflowSelectorTab() {
+  const [workflows, setWorkflows] = useState<FlatWorkflow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [cadenceFilter, setCadenceFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [sortField, setSortField] = useState<WsSortField>('cadence');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+
+  // Load workflows — try API with includeHidden, fallback to static
+  useEffect(() => {
+    async function load() {
+      let flat: FlatWorkflow[] = [];
+      try {
+        const res = await fetch('/api/workflows?includeHidden=true');
+        if (res.ok) {
+          const data = await res.json();
+          if (Object.keys(data).length > 0) {
+            for (const [cadence, cData] of Object.entries(data) as any) {
+              for (const w of cData.workflows) {
+                flat.push({
+                  id: w.id || w.key,
+                  name: w.name,
+                  cadence,
+                  category: w.category || 'Uncategorized',
+                  visible: w.visible ?? true,
+                  timeEst: w.timeEst || '',
+                  subsCount: (w.subs || []).length,
+                  subs: w.subs || [],
+                });
+              }
+            }
+          }
+        }
+      } catch {
+        // fallback
+      }
+      // Fallback to static data
+      if (flat.length === 0) {
+        for (const [cadence, cData] of Object.entries(WORKFLOW_DATA)) {
+          for (const w of cData.workflows) {
+            flat.push({
+              id: w.id,
+              name: w.name,
+              cadence,
+              category: w.category || 'Uncategorized',
+              visible: w.visible ?? true,
+              timeEst: w.timeEst || '',
+              subsCount: (w.subs || []).length,
+              subs: w.subs || [],
+            });
+          }
+        }
+      }
+      setWorkflows(flat);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  // Derived: categories list
+  const categories = useMemo(() => {
+    const cats = new Set(workflows.map(w => w.category));
+    return ['All', ...Array.from(cats).sort()];
+  }, [workflows]);
+
+  // Filtered + sorted
+  const filtered = useMemo(() => {
+    let result = workflows;
+    if (categoryFilter !== 'All') result = result.filter(w => w.category === categoryFilter);
+    if (cadenceFilter !== 'All') result = result.filter(w => w.cadence === cadenceFilter.toLowerCase());
+    if (statusFilter === 'Visible') result = result.filter(w => w.visible);
+    if (statusFilter === 'Hidden') result = result.filter(w => !w.visible);
+
+    const cadenceOrder: Record<string, number> = { daily: 0, weekly: 1, monthly: 2, quarterly: 3, annual: 4 };
+    return [...result].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'name') cmp = a.name.localeCompare(b.name);
+      else if (sortField === 'category') cmp = a.category.localeCompare(b.category);
+      else cmp = (cadenceOrder[a.cadence] ?? 99) - (cadenceOrder[b.cadence] ?? 99);
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [workflows, categoryFilter, cadenceFilter, statusFilter, sortField, sortDir]);
+
+  // Stats
+  const stats = useMemo(() => ({
+    total: workflows.length,
+    visible: workflows.filter(w => w.visible).length,
+    hidden: workflows.filter(w => !w.visible).length,
+  }), [workflows]);
+
+  const toggleSort = useCallback((field: WsSortField) => {
+    setSortField(prev => {
+      if (prev === field) {
+        setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        return field;
+      }
+      setSortDir('asc');
+      return field;
+    });
+  }, []);
+
+  const sortIndicator = (field: WsSortField) => {
+    if (sortField !== field) return '';
+    return sortDir === 'asc' ? ' \u25B2' : ' \u25BC';
+  };
+
+  const toggleVisibility = useCallback(async (id: string) => {
+    const wf = workflows.find(w => w.id === id);
+    if (!wf) return;
+    const newVal = !wf.visible;
+    // Optimistic update
+    setWorkflows(prev => prev.map(w => w.id === id ? { ...w, visible: newVal } : w));
+    try {
+      await fetch('/api/workflows/visibility', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates: [{ key: id, visible: newVal }] }),
+      });
+    } catch {
+      // Revert on failure
+      setWorkflows(prev => prev.map(w => w.id === id ? { ...w, visible: !newVal } : w));
+    }
+  }, [workflows]);
+
+  const bulkToggle = useCallback(async (visible: boolean) => {
+    const ids = filtered.map(w => w.id);
+    if (ids.length === 0) return;
+    setSaving(true);
+    // Optimistic
+    setWorkflows(prev => prev.map(w => ids.includes(w.id) ? { ...w, visible } : w));
+    try {
+      await fetch('/api/workflows/visibility', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates: ids.map(key => ({ key, visible })) }),
+      });
+    } catch {
+      // Revert
+      setWorkflows(prev => prev.map(w => ids.includes(w.id) ? { ...w, visible: !visible } : w));
+    } finally {
+      setSaving(false);
+    }
+  }, [filtered]);
+
+  const toggleExpand = useCallback((id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  if (loading) {
+    return <p style={{ color: '#94a3b8', textAlign: 'center', padding: '40px' }}>Loading workflows...</p>;
+  }
+
+  return (
+    <>
+      {/* Stats bar */}
+      <div className="ws-stats">
+        <span><strong>{stats.total}</strong> Total</span>
+        <span style={{ color: '#10b981' }}><strong>{stats.visible}</strong> Visible (Front Book)</span>
+        <span style={{ color: '#94a3b8' }}><strong>{stats.hidden}</strong> Hidden</span>
+      </div>
+
+      {/* Filter bar */}
+      <div className="ws-filter-bar">
+        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={cadenceFilter} onChange={e => setCadenceFilter(e.target.value)}>
+          {['All', 'Daily', 'Weekly', 'Monthly', 'Quarterly', 'Annual'].map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+          {['All', 'Visible', 'Hidden'].map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <div className="ws-bulk-actions">
+          <button className="btn btn-ghost" style={{ fontSize: '11px', padding: '4px 10px' }} onClick={() => bulkToggle(true)} disabled={saving}>
+            Show All ({filtered.length})
+          </button>
+          <button className="btn btn-ghost" style={{ fontSize: '11px', padding: '4px 10px' }} onClick={() => bulkToggle(false)} disabled={saving}>
+            Hide All ({filtered.length})
+          </button>
+        </div>
+        <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#6b7280' }}>
+          Showing {filtered.length} of {stats.total}
+        </span>
+      </div>
+
+      {/* Master table */}
+      <table className="bo-table">
+        <thead>
+          <tr>
+            <th style={{ width: '28px' }}></th>
+            <th style={{ width: '50px' }}>ID</th>
+            <th className="bo-sort-header" onClick={() => toggleSort('name')}>
+              Name{sortIndicator('name')}
+            </th>
+            <th className="bo-sort-header" onClick={() => toggleSort('category')}>
+              Category{sortIndicator('category')}
+            </th>
+            <th className="bo-sort-header" onClick={() => toggleSort('cadence')}>
+              Cadence{sortIndicator('cadence')}
+            </th>
+            <th>Time Est</th>
+            <th style={{ width: '40px' }}>Subs</th>
+            <th style={{ width: '80px', textAlign: 'center' }}>Front Book</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map(w => (
+            <Fragment key={w.id}>
+              <tr
+                className={w.visible ? '' : 'ws-hidden-row'}
+                style={{ cursor: w.subsCount > 0 ? 'pointer' : 'default' }}
+                onClick={() => w.subsCount > 0 && toggleExpand(w.id)}
+              >
+                <td style={{ textAlign: 'center', fontSize: '10px', color: '#9ca3af' }}>
+                  {w.subsCount > 0 ? (expandedIds.has(w.id) ? '\u25BC' : '\u25B6') : ''}
+                </td>
+                <td style={{ fontSize: '10px', color: '#6b7280', fontFamily: 'monospace' }}>{w.id}</td>
+                <td><span className="bo-wf-name">{w.name}</span></td>
+                <td>
+                  <span
+                    className="ws-category-pill"
+                    style={{ background: CATEGORY_COLORS[w.category] || '#6b7280' }}
+                  >
+                    {w.category}
+                  </span>
+                </td>
+                <td>
+                  <span
+                    style={{
+                      display: 'inline-block', padding: '1px 6px', borderRadius: '8px',
+                      fontSize: '9px', fontWeight: 600, color: '#fff',
+                      background: CADENCE_COLORS[w.cadence] || '#666',
+                    }}
+                  >
+                    {CADENCE_LABELS[w.cadence] || w.cadence}
+                  </span>
+                </td>
+                <td style={{ fontSize: '11px', color: '#6b7280' }}>{w.timeEst}</td>
+                <td style={{ textAlign: 'center', fontSize: '11px', color: '#6b7280' }}>{w.subsCount || ''}</td>
+                <td style={{ textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    className="ws-visible-toggle"
+                    checked={w.visible}
+                    onChange={(e) => { e.stopPropagation(); toggleVisibility(w.id); }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </td>
+              </tr>
+              {expandedIds.has(w.id) && w.subs.map(sub => (
+                <tr key={sub.id} className="sub-row">
+                  <td></td>
+                  <td style={{ fontSize: '9px', color: '#9ca3af', fontFamily: 'monospace' }}>{sub.id}</td>
+                  <td colSpan={4} style={{ fontSize: '11px', paddingLeft: '24px' }}>
+                    <strong>{sub.name}</strong>
+                    {sub.how && <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>{sub.how}</div>}
+                  </td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              ))}
+            </Fragment>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+}
 
 // ── Detail View ──
 
@@ -178,6 +497,7 @@ function DetailView({ detail }: { detail: AssessmentFull }) {
 // ── Main Backoffice Page ──
 
 export default function BackofficePage() {
+  const [activeTab, setActiveTab] = useState<BackofficeTab>('assessments');
   const [assessments, setAssessments] = useState<AssessmentSummary[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedDetail, setExpandedDetail] = useState<AssessmentFull | null>(null);
@@ -270,72 +590,96 @@ export default function BackofficePage() {
   return (
     <>
       <div className="top-bar">
-        <h1>Backoffice — Assessment Reviews</h1>
+        <h1>Backoffice</h1>
         <div className="bar-actions">
           <Link href="/" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
             Back to Assessment
           </Link>
-          <button
-            className="btn btn-primary"
-            onClick={exportAll}
-            disabled={exporting || assessments.length === 0}
-          >
-            {exporting ? 'Exporting...' : 'Export All Excel'}
-          </button>
+          {activeTab === 'assessments' && (
+            <button
+              className="btn btn-primary"
+              onClick={exportAll}
+              disabled={exporting || assessments.length === 0}
+            >
+              {exporting ? 'Exporting...' : 'Export All Excel'}
+            </button>
+          )}
         </div>
       </div>
 
+      {/* Tab bar */}
+      <div className="bo-tabs">
+        <button
+          className={`bo-tab ${activeTab === 'assessments' ? 'active' : ''}`}
+          onClick={() => setActiveTab('assessments')}
+        >
+          Assessments
+        </button>
+        <button
+          className={`bo-tab ${activeTab === 'workflows' ? 'active' : ''}`}
+          onClick={() => setActiveTab('workflows')}
+        >
+          Workflow Selector
+        </button>
+      </div>
+
       <div className="main-content">
-        {loading ? (
-          <p style={{ color: '#94a3b8', textAlign: 'center', padding: '40px' }}>Loading assessments...</p>
-        ) : assessments.length === 0 ? (
-          <p style={{ color: '#94a3b8', textAlign: 'center', padding: '40px' }}>
-            No assessments submitted yet. Go to the <Link href="/" style={{ color: '#fbbf24' }}>assessment page</Link> to submit one.
-          </p>
-        ) : (
-          <table className="bo-table">
-            <thead>
-              <tr>
-                <th className="bo-sort-header" onClick={() => toggleSort('companyName')}>
-                  Company{sortIndicator('companyName')}
-                </th>
-                <th className="bo-sort-header" onClick={() => toggleSort('createdAt')}>
-                  Submitted{sortIndicator('createdAt')}
-                </th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map(a => (
-                <Fragment key={a.id}>
-                  <tr className="bo-clickable-row" onClick={() => toggleExpand(a.id)}>
-                    <td>{a.companyName || '(unnamed)'}</td>
-                    <td>{new Date(a.createdAt).toLocaleDateString()}</td>
-                    <td>
-                      <button
-                        className="btn btn-ghost"
-                        style={{ padding: '4px 12px', fontSize: '12px' }}
-                        onClick={(e) => { e.stopPropagation(); exportSingle(a.id); }}
-                      >
-                        Export Excel
-                      </button>
-                    </td>
+        {activeTab === 'assessments' ? (
+          <>
+            {loading ? (
+              <p style={{ color: '#94a3b8', textAlign: 'center', padding: '40px' }}>Loading assessments...</p>
+            ) : assessments.length === 0 ? (
+              <p style={{ color: '#94a3b8', textAlign: 'center', padding: '40px' }}>
+                No assessments submitted yet. Go to the <Link href="/" style={{ color: '#fbbf24' }}>assessment page</Link> to submit one.
+              </p>
+            ) : (
+              <table className="bo-table">
+                <thead>
+                  <tr>
+                    <th className="bo-sort-header" onClick={() => toggleSort('companyName')}>
+                      Company{sortIndicator('companyName')}
+                    </th>
+                    <th className="bo-sort-header" onClick={() => toggleSort('createdAt')}>
+                      Submitted{sortIndicator('createdAt')}
+                    </th>
+                    <th>Actions</th>
                   </tr>
-                  {expandedId === a.id && (
-                    <tr className="bo-detail-row">
-                      <td colSpan={3}>
-                        {expandedDetail ? (
-                          <DetailView detail={expandedDetail} />
-                        ) : (
-                          <p style={{ color: '#94a3b8', padding: '12px' }}>Loading details...</p>
-                        )}
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {sorted.map(a => (
+                    <Fragment key={a.id}>
+                      <tr className="bo-clickable-row" onClick={() => toggleExpand(a.id)}>
+                        <td>{a.companyName || '(unnamed)'}</td>
+                        <td>{new Date(a.createdAt).toLocaleDateString()}</td>
+                        <td>
+                          <button
+                            className="btn btn-ghost"
+                            style={{ padding: '4px 12px', fontSize: '12px' }}
+                            onClick={(e) => { e.stopPropagation(); exportSingle(a.id); }}
+                          >
+                            Export Excel
+                          </button>
+                        </td>
+                      </tr>
+                      {expandedId === a.id && (
+                        <tr className="bo-detail-row">
+                          <td colSpan={3}>
+                            {expandedDetail ? (
+                              <DetailView detail={expandedDetail} />
+                            ) : (
+                              <p style={{ color: '#94a3b8', padding: '12px' }}>Loading details...</p>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </>
+        ) : (
+          <WorkflowSelectorTab />
         )}
       </div>
     </>
