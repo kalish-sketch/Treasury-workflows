@@ -31,6 +31,8 @@ export const workflows = pgTable('workflows', {
   hrs: text('hrs').notNull().default(''),
   err: text('err').notNull().default(''),
   opt: text('opt').notNull().default(''),
+  category: text('category').notNull().default('Uncategorized'),
+  visible: boolean('visible').notNull().default(true),
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

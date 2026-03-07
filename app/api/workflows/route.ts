@@ -1,13 +1,15 @@
 export const dynamic = 'force-dynamic';
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { cadences, workflows, subWorkflows } from '@/lib/schema';
 import { asc, eq } from 'drizzle-orm';
 
 // GET /api/workflows — returns all workflows grouped by cadence
-export async function GET() {
+// Query params: ?includeHidden=true to include workflows with visible=false (for backoffice)
+export async function GET(request: NextRequest) {
   const db = getDb();
+  const includeHidden = request.nextUrl.searchParams.get('includeHidden') === 'true';
 
   const cadenceList = await db
     .select()
@@ -22,6 +24,8 @@ export async function GET() {
       id: string;
       key: string;
       name: string;
+      category: string;
+      visible: boolean;
       timeEst: string;
       who: string;
       systems: string;
@@ -42,34 +46,38 @@ export async function GET() {
       .orderBy(asc(workflows.sortOrder));
 
     const wfWithSubs = await Promise.all(
-      wfList.map(async (wf) => {
-        const subs = await db
-          .select()
-          .from(subWorkflows)
-          .where(eq(subWorkflows.workflowId, wf.id))
-          .orderBy(asc(subWorkflows.sortOrder));
+      wfList
+        .filter(wf => includeHidden || wf.visible)
+        .map(async (wf) => {
+          const subs = await db
+            .select()
+            .from(subWorkflows)
+            .where(eq(subWorkflows.workflowId, wf.id))
+            .orderBy(asc(subWorkflows.sortOrder));
 
-        return {
-          id: wf.key,
-          key: wf.key,
-          name: wf.name,
-          timeEst: wf.timeEst,
-          who: wf.who,
-          systems: wf.systems,
-          how: wf.how,
-          pain: wf.pain,
-          hrs: wf.hrs,
-          err: wf.err,
-          opt: wf.opt,
-          subs: subs.map((s) => ({
-            id: s.key,
-            key: s.key,
-            name: s.name,
-            how: s.how,
-            pain: s.pain,
-          })),
-        };
-      })
+          return {
+            id: wf.key,
+            key: wf.key,
+            name: wf.name,
+            category: wf.category,
+            visible: wf.visible,
+            timeEst: wf.timeEst,
+            who: wf.who,
+            systems: wf.systems,
+            how: wf.how,
+            pain: wf.pain,
+            hrs: wf.hrs,
+            err: wf.err,
+            opt: wf.opt,
+            subs: subs.map((s) => ({
+              id: s.key,
+              key: s.key,
+              name: s.name,
+              how: s.how,
+              pain: s.pain,
+            })),
+          };
+        })
     );
 
     result[c.key] = {

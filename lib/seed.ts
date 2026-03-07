@@ -24,6 +24,7 @@ interface RawSub { id: string; name: string; how: string; pain: string }
 interface RawWorkflow {
   id: string; name: string; timeEst: string; who: string; systems: string;
   how: string; pain: string; hrs: string; err: string; opt: string;
+  category?: string; visible?: boolean;
   subs: RawSub[];
 }
 
@@ -407,11 +408,13 @@ export async function runSeed(url: string) {
         hrs: wf.hrs,
         err: wf.err,
         opt: wf.opt,
+        category: wf.category ?? 'Uncategorized',
+        visible: wf.visible ?? true,
         sortOrder: i,
       })
         .onConflictDoUpdate({
           target: schema.workflows.key,
-          set: { name: wf.name, timeEst: wf.timeEst, who: wf.who, systems: wf.systems, how: wf.how, pain: wf.pain, hrs: wf.hrs, err: wf.err, opt: wf.opt, sortOrder: i, cadenceId },
+          set: { name: wf.name, timeEst: wf.timeEst, who: wf.who, systems: wf.systems, how: wf.how, pain: wf.pain, hrs: wf.hrs, err: wf.err, opt: wf.opt, category: wf.category ?? 'Uncategorized', visible: wf.visible ?? true, sortOrder: i, cadenceId },
         })
         .returning();
       workflowIdMap[wf.id] = row.id;
