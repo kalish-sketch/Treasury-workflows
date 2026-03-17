@@ -6,6 +6,7 @@ import { CompanyProfile as CompanyProfileType } from '@/types';
 
 export interface CompanyProfileHandle {
   getProfile: () => CompanyProfileType;
+  validate: () => boolean;
 }
 
 const INDUSTRIES = [
@@ -36,6 +37,7 @@ const CompanyProfile = forwardRef<CompanyProfileHandle>(function CompanyProfile(
   const [currencies, setCurrencies] = useState<string[]>([]);
   const [banks, setBanks] = useState<string[]>([]);
   const [otherSystems, setOtherSystems] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const getProfile = useCallback((): CompanyProfileType => ({
     company: companyRef.current?.value || '',
@@ -55,7 +57,20 @@ const CompanyProfile = forwardRef<CompanyProfileHandle>(function CompanyProfile(
     facilities: facilitiesRef.current?.value || '',
   }), [currencies, banks, otherSystems]);
 
-  useImperativeHandle(ref, () => ({ getProfile }), [getProfile]);
+  const validate = useCallback((): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!companyRef.current?.value?.trim()) {
+      newErrors.company = 'Company name is required';
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      companyRef.current?.focus();
+      return false;
+    }
+    return true;
+  }, []);
+
+  useImperativeHandle(ref, () => ({ getProfile, validate }), [getProfile, validate]);
 
   return (
     <div>
@@ -65,9 +80,16 @@ const CompanyProfile = forwardRef<CompanyProfileHandle>(function CompanyProfile(
       <div className="profile-grid">
         <div className="profile-card">
           <h3>Company Details</h3>
-          <div className="form-row">
-            <label>Company Name</label>
-            <input type="text" ref={companyRef} placeholder="Acme Corp" />
+          <div className={`form-row${errors.company ? ' form-row-error' : ''}`}>
+            <label>Company Name <span className="required">*</span></label>
+            <input
+              type="text"
+              ref={companyRef}
+              placeholder="Acme Corp"
+              required
+              onChange={() => errors.company && setErrors(prev => { const { company, ...rest } = prev; return rest; })}
+            />
+            {errors.company && <span className="field-error">{errors.company}</span>}
           </div>
           <div className="form-row">
             <label>Annual Revenue</label>

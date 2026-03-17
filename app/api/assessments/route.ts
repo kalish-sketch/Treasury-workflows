@@ -46,6 +46,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const companyName = (body.companyName || '').trim();
 
+    if (!companyName) {
+      return NextResponse.json({ error: 'Company name is required' }, { status: 400 });
+    }
+
     // Check for existing assessment with same company name (case-insensitive)
     const existing = companyName
       ? await getDb()
