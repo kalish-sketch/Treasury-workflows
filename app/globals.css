@@ -39,6 +39,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .form-row label { font-size: 12px; font-weight: 600; color: #666; min-width: 140px; }
 .form-row input, .form-row select { flex: 1; padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; font-family: inherit; }
 .form-row input:focus, .form-row select:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 3px rgba(52,152,219,0.1); }
+.form-row .required { color: #e74c3c; }
+.form-row-error input, .form-row-error select { border-color: #e74c3c; box-shadow: 0 0 0 3px rgba(231,76,60,0.1); }
+.field-error { color: #e74c3c; font-size: 11px; margin-top: 2px; }
 .tag-input-wrapper { flex: 1; display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 8px; border: 1px solid #ddd; border-radius: 6px; min-height: 34px; align-items: center; cursor: text; }
 .tag-input-wrapper:focus-within { border-color: #3498db; box-shadow: 0 0 0 3px rgba(52,152,219,0.1); }
 .tag-input-wrapper .tag-pill { display: inline-flex; align-items: center; gap: 4px; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }

@@ -310,6 +310,10 @@ export default function TreasuryApp() {
   }, [workflowData, customWorkflows]);
 
   const saveAssessment = useCallback(async () => {
+    if (!profileRef.current?.validate()) {
+      setActiveTab('profile');
+      return;
+    }
     setSaving(true);
     try {
       const payload = buildPayload();
@@ -333,6 +337,10 @@ export default function TreasuryApp() {
   }, [buildPayload]);
 
   const submitAssessment = useCallback(async () => {
+    if (!profileRef.current?.validate()) {
+      setActiveTab('profile');
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = buildPayload();
