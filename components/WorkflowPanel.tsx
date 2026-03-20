@@ -84,10 +84,10 @@ export default function WorkflowPanel({
       <div className="cadence-header">
         <span className="cadence-badge">{cadence.label}</span>
         <span className="cadence-title">{cadence.tagline}</span>
-        <span className="selection-counts" style={{ marginLeft: 'auto', display: 'flex', gap: '12px', fontSize: '12px', fontWeight: 600 }}>
-          <span style={{ color: '#22c55e' }}>✓ Do: {doCount}</span>
-          <span style={{ color: '#f59e0b' }}>★ Wish: {wishCount}</span>
-        </span>
+      </div>
+      <div className="selection-counts" style={{ display: 'flex', gap: '12px', fontSize: '12px', fontWeight: 600, padding: '6px 4px' }}>
+        <span style={{ color: '#22c55e' }}>✓ Do: {doCount}</span>
+        <span style={{ color: '#f59e0b' }}>★ Wish: {wishCount}</span>
       </div>
       <table>
         <colgroup>
