@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     const wfWithSubs = await Promise.all(
       wfList
-        .filter(wf => includeHidden || wf.visible)
+        // All workflows are always returned; visibility is informational only
         .map(async (wf) => {
           const subs = await db
             .select()

@@ -5,6 +5,7 @@ import { useState, KeyboardEvent, useMemo } from 'react';
 interface WorkflowTagCellProps {
   htmlContent: string;
   type: 'who' | 'systems';
+  isInspo?: boolean;
   onChange: (newHtml: string) => void;
 }
 
@@ -44,7 +45,7 @@ function tagsToHtml(tags: string[], type: 'who' | 'systems'): string {
   }).join(' ');
 }
 
-export default function WorkflowTagCell({ htmlContent, type, onChange }: WorkflowTagCellProps) {
+export default function WorkflowTagCell({ htmlContent, type, isInspo, onChange }: WorkflowTagCellProps) {
   const tags = useMemo(() => parseTagsFromHtml(htmlContent), [htmlContent]);
   const [inputValue, setInputValue] = useState('');
   const [editing, setEditing] = useState(false);
@@ -75,6 +76,7 @@ export default function WorkflowTagCell({ htmlContent, type, onChange }: Workflo
         className="wf-tag-cell"
         onClick={() => setEditing(true)}
         title="Click to edit"
+        style={isInspo ? { opacity: 0.5, filter: 'grayscale(70%)' } : undefined}
       >
         {tags.map((tag, i) => (
           <span

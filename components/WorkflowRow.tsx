@@ -14,6 +14,28 @@ const CADENCE_COLORS: Record<string, string> = {
 const CADENCE_FULL_LABELS: Record<string, string> = {
   daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', quarterly: 'Quarterly', annual: 'Annual',
 };
+const CATEGORY_COLORS: Record<string, string> = {
+  'Cash Management': '#3b82f6',
+  'Payment Operations': '#ef4444',
+  'FX Management': '#8b5cf6',
+  'Risk & Compliance': '#f59e0b',
+  'Liquidity Management': '#06b6d4',
+  'Bank Relationship Management': '#10b981',
+  'Reporting & Analysis': '#6366f1',
+  'Strategic Planning': '#0ea5e9',
+  'Fraud Prevention': '#dc2626',
+  'SOX Compliance & Controls': '#d97706',
+  'Bank Account Management (EBAM)': '#059669',
+  'Supply Chain Finance': '#7c3aed',
+  'Interest Rate Risk': '#2563eb',
+  'Real-Time Treasury': '#0891b2',
+  'ESG / Sustainability': '#16a34a',
+  'Commodity Risk': '#ea580c',
+  'Cross-Border Cash Management': '#4f46e5',
+  'M&A Integration': '#9333ea',
+  'Business Continuity': '#b91c1c',
+  'Shared Services & In-House Bank': '#0d9488',
+};
 
 interface WorkflowRowProps {
   workflow: Workflow;
@@ -21,6 +43,7 @@ interface WorkflowRowProps {
   allCadenceKeys: string[];
   readOnly?: boolean;
   sourceCadence?: string;
+  editedFields?: Set<string>;
   onToggleDo: (cadence: string, id: string, val: boolean) => void;
   onToggleWish: (cadence: string, id: string, val: boolean) => void;
   onUpdateMetric: (cadence: string, id: string, field: string, val: string) => void;
@@ -39,6 +62,7 @@ export default function WorkflowRow({
   allCadenceKeys,
   readOnly = false,
   sourceCadence,
+  editedFields,
   onToggleDo,
   onToggleWish,
   onUpdateMetric,
@@ -55,6 +79,15 @@ export default function WorkflowRow({
   const subDirty = subDraft.name.trim() !== '';
 
   const activeCadences = w.cadences || [cadenceKey];
+
+  // Check if a field has been user-edited (not just default inspo data)
+  const isInspo = (field: string) => {
+    if (w.custom) return false; // custom workflows are always user-entered
+    if (!editedFields) return true; // if no tracking, treat all as inspo
+    return !editedFields.has(`${cadenceKey}:${w.id}:${field}`);
+  };
+
+  const inspoStyle = { color: '#9ca3af', fontStyle: 'italic' as const };
 
   const commitSub = useCallback(() => {
     if (!subDraft.name.trim()) return;
@@ -82,7 +115,7 @@ export default function WorkflowRow({
     onUpdateCadences(cadenceKey, w.id, current);
   };
 
-  const colCount = 11; // total columns with Freq
+  const colCount = 12; // total columns with Subs + Freq
 
   return (
     <>
@@ -138,8 +171,25 @@ export default function WorkflowRow({
               )}
               <br />
               <span className="time-est">{w.timeEst || ''}</span>
+              {w.category && (
+                <>
+                  <br />
+                  <span
+                    style={{
+                      display: 'inline-block', padding: '1px 6px', borderRadius: '8px',
+                      fontSize: '9px', fontWeight: 600, color: '#fff', marginTop: '2px',
+                      background: CATEGORY_COLORS[w.category] || '#6b7280',
+                    }}
+                  >
+                    {w.category}
+                  </span>
+                </>
+              )}
             </div>
           </div>
+        </td>
+        <td style={{ textAlign: 'center', fontSize: '11px', color: hasSubs ? '#6366f1' : '#d1d5db' }}>
+          {hasSubs ? w.subs.length : '—'}
         </td>
         <td>
           {readOnly ? (
@@ -148,6 +198,7 @@ export default function WorkflowRow({
             <WorkflowTagCell
               htmlContent={w.who}
               type="who"
+              isInspo={isInspo('who')}
               onChange={(html) => onUpdateMetric(cadenceKey, w.id, 'who', html)}
             />
           )}
@@ -159,6 +210,7 @@ export default function WorkflowRow({
             <WorkflowTagCell
               htmlContent={w.systems}
               type="systems"
+              isInspo={isInspo('systems')}
               onChange={(html) => onUpdateMetric(cadenceKey, w.id, 'systems', html)}
             />
           )}
@@ -169,6 +221,7 @@ export default function WorkflowRow({
           ) : (
             <textarea
               className="inline-textarea"
+              style={isInspo('how') ? inspoStyle : undefined}
               defaultValue={w.how}
               onBlur={e => onUpdateMetric(cadenceKey, w.id, 'how', e.target.value)}
               rows={3}
@@ -181,6 +234,7 @@ export default function WorkflowRow({
           ) : (
             <textarea
               className="inline-textarea pain"
+              style={isInspo('pain') ? inspoStyle : undefined}
               defaultValue={w.pain}
               onBlur={e => onUpdateMetric(cadenceKey, w.id, 'pain', e.target.value)}
               rows={3}
@@ -193,6 +247,7 @@ export default function WorkflowRow({
           ) : (
             <input
               type="text"
+              style={isInspo('hrs') ? inspoStyle : undefined}
               defaultValue={w.hrs}
               onBlur={e => onUpdateMetric(cadenceKey, w.id, 'hrs', e.target.value)}
             />
@@ -204,6 +259,7 @@ export default function WorkflowRow({
           ) : (
             <input
               type="text"
+              style={isInspo('err') ? inspoStyle : undefined}
               defaultValue={w.err}
               onBlur={e => onUpdateMetric(cadenceKey, w.id, 'err', e.target.value)}
             />
@@ -215,6 +271,7 @@ export default function WorkflowRow({
           ) : (
             <input
               type="text"
+              style={isInspo('opt') ? inspoStyle : undefined}
               defaultValue={w.opt}
               onBlur={e => onUpdateMetric(cadenceKey, w.id, 'opt', e.target.value)}
             />
@@ -283,6 +340,7 @@ export default function WorkflowRow({
                   />
                 </div>
               </td>
+              <td></td>
               <td colSpan={2}></td>
               <td>
                 <textarea
