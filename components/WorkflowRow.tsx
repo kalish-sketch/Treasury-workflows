@@ -14,6 +14,28 @@ const CADENCE_COLORS: Record<string, string> = {
 const CADENCE_FULL_LABELS: Record<string, string> = {
   daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', quarterly: 'Quarterly', annual: 'Annual',
 };
+const CATEGORY_COLORS: Record<string, string> = {
+  'Cash Management': '#3b82f6',
+  'Payment Operations': '#ef4444',
+  'FX Management': '#8b5cf6',
+  'Risk & Compliance': '#f59e0b',
+  'Liquidity Management': '#06b6d4',
+  'Bank Relationship Management': '#10b981',
+  'Reporting & Analysis': '#6366f1',
+  'Strategic Planning': '#0ea5e9',
+  'Fraud Prevention': '#dc2626',
+  'SOX Compliance & Controls': '#d97706',
+  'Bank Account Management (EBAM)': '#059669',
+  'Supply Chain Finance': '#7c3aed',
+  'Interest Rate Risk': '#2563eb',
+  'Real-Time Treasury': '#0891b2',
+  'ESG / Sustainability': '#16a34a',
+  'Commodity Risk': '#ea580c',
+  'Cross-Border Cash Management': '#4f46e5',
+  'M&A Integration': '#9333ea',
+  'Business Continuity': '#b91c1c',
+  'Shared Services & In-House Bank': '#0d9488',
+};
 
 interface WorkflowRowProps {
   workflow: Workflow;
@@ -138,6 +160,25 @@ export default function WorkflowRow({
               )}
               <br />
               <span className="time-est">{w.timeEst || ''}</span>
+              {hasSubs && (
+                <span className="time-est" style={{ marginLeft: '6px' }}>
+                  ({w.subs.length} sub-task{w.subs.length > 1 ? 's' : ''})
+                </span>
+              )}
+              {w.category && (
+                <>
+                  <br />
+                  <span
+                    style={{
+                      display: 'inline-block', padding: '1px 6px', borderRadius: '8px',
+                      fontSize: '9px', fontWeight: 600, color: '#fff', marginTop: '2px',
+                      background: CATEGORY_COLORS[w.category] || '#6b7280',
+                    }}
+                  >
+                    {w.category}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </td>
