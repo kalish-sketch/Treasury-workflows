@@ -88,6 +88,21 @@ tr.sub-row:hover { background: #f0f4ff; }
 .sys-tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 500; margin: 1px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
 .pain-text { color: #b91c1c; font-size: 11px; }
 
+/* ─── Filter Row & Sortable Headers ─── */
+.th-sortable { cursor: pointer; user-select: none; }
+.th-sortable:hover { background: #2a2a4e; }
+.sort-indicator { font-size: 8px; opacity: 0.5; margin-left: 2px; }
+.th-sortable:hover .sort-indicator { opacity: 0.8; }
+
+.filter-row td { background: #2a2a4e; padding: 4px 6px !important; border-bottom: 2px solid #1a1a2e; }
+.filter-row input, .filter-row select { width: 100%; font-size: 10px; padding: 3px 5px; border: 1px solid #444; border-radius: 4px; background: #1a1a2e; color: #e2e8f0; font-family: inherit; }
+.filter-row input::placeholder { color: #6b7280; }
+.filter-row input:focus, .filter-row select:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 1px rgba(52,152,219,0.3); }
+.filter-row select { cursor: pointer; appearance: auto; }
+
+.clear-filters-btn { background: transparent; border: 1px solid #fbbf24; color: #fbbf24; font-size: 9px; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.clear-filters-btn:hover { background: rgba(251,191,36,0.15); }
+
 /* ─── Toggle checkboxes ─── */
 .toggle-cell { text-align: center; vertical-align: middle !important; }
 .toggle-cb { width: 18px; height: 18px; cursor: pointer; accent-color: #1a1a2e; }
