@@ -14,7 +14,7 @@ import SummaryPanel from './SummaryPanel';
 function deepCloneWorkflowData(): WorkflowDataMap {
   const raw = JSON.parse(JSON.stringify(WORKFLOW_DATA)) as WorkflowDataMap;
   for (const [cadenceKey, cadence] of Object.entries(raw)) {
-    cadence.workflows = cadence.workflows.filter(w => w.visible !== false);
+    // Show all workflows (no visibility filtering)
     for (const w of cadence.workflows) {
       w.subs = w.subs.map(s => ({ ...s, doToday: s.doToday ?? false, wishToDo: s.wishToDo ?? false }));
       w.cadences = w.cadences || [cadenceKey];
@@ -31,7 +31,6 @@ function addDefaultsToWorkflowData(raw: Record<string, any>): WorkflowDataMap {
       tagline: cadence.tagline,
       color: cadence.color,
       workflows: cadence.workflows
-        .filter((w: any) => w.visible !== false)
         .map((w: any) => ({
           ...w,
           doToday: false,

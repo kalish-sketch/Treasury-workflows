@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     const wfWithSubs = await Promise.all(
       wfList
-        .filter(wf => includeHidden || wf.visible)
+        .filter(wf => true)
         .map(async (wf) => {
           const subs = await db
             .select()
