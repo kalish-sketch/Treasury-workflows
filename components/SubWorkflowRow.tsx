@@ -13,8 +13,8 @@ interface SubWorkflowRowProps {
   onToggleSubWish: (cadence: string, workflowId: string, subId: string, val: boolean) => void;
 }
 
-export default function SubWorkflowRow({ sub, cadenceKey, workflowId, readOnly, colCount = 10, onUpdateSub, onToggleSubDo, onToggleSubWish }: SubWorkflowRowProps) {
-  const trailingCols = colCount - 7; // 7 = do + wish + name + who/sys(2) + how + pain
+export default function SubWorkflowRow({ sub, cadenceKey, workflowId, readOnly, colCount = 12, onUpdateSub, onToggleSubDo, onToggleSubWish }: SubWorkflowRowProps) {
+  const trailingCols = colCount - 8; // 8 = do + wish + name + subs + who/sys(2) + how + pain
   return (
     <tr className={`sub-row ${readOnly ? 'linked-row' : ''}`}>
       <td className="toggle-cell">
@@ -48,6 +48,7 @@ export default function SubWorkflowRow({ sub, cadenceKey, workflowId, readOnly, 
         )}
       </td>
       <td><span className="sub-name">{'\u21B3'} {sub.name}</span></td>
+      <td></td>
       <td colSpan={2}></td>
       <td className="editable-text-cell">
         {readOnly ? (

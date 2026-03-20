@@ -43,6 +43,7 @@ interface WorkflowRowProps {
   allCadenceKeys: string[];
   readOnly?: boolean;
   sourceCadence?: string;
+  editedFields?: Set<string>;
   onToggleDo: (cadence: string, id: string, val: boolean) => void;
   onToggleWish: (cadence: string, id: string, val: boolean) => void;
   onUpdateMetric: (cadence: string, id: string, field: string, val: string) => void;
@@ -61,6 +62,7 @@ export default function WorkflowRow({
   allCadenceKeys,
   readOnly = false,
   sourceCadence,
+  editedFields,
   onToggleDo,
   onToggleWish,
   onUpdateMetric,
@@ -77,6 +79,15 @@ export default function WorkflowRow({
   const subDirty = subDraft.name.trim() !== '';
 
   const activeCadences = w.cadences || [cadenceKey];
+
+  // Check if a field has been user-edited (not just default inspo data)
+  const isInspo = (field: string) => {
+    if (w.custom) return false; // custom workflows are always user-entered
+    if (!editedFields) return true; // if no tracking, treat all as inspo
+    return !editedFields.has(`${cadenceKey}:${w.id}:${field}`);
+  };
+
+  const inspoStyle = { color: '#9ca3af', fontStyle: 'italic' as const };
 
   const commitSub = useCallback(() => {
     if (!subDraft.name.trim()) return;
@@ -104,7 +115,7 @@ export default function WorkflowRow({
     onUpdateCadences(cadenceKey, w.id, current);
   };
 
-  const colCount = 11; // total columns with Freq
+  const colCount = 12; // total columns with Subs + Freq
 
   return (
     <>
@@ -160,11 +171,6 @@ export default function WorkflowRow({
               )}
               <br />
               <span className="time-est">{w.timeEst || ''}</span>
-              {hasSubs && (
-                <span className="time-est" style={{ marginLeft: '6px' }}>
-                  ({w.subs.length} sub-task{w.subs.length > 1 ? 's' : ''})
-                </span>
-              )}
               {w.category && (
                 <>
                   <br />
@@ -182,6 +188,9 @@ export default function WorkflowRow({
             </div>
           </div>
         </td>
+        <td style={{ textAlign: 'center', fontSize: '11px', color: hasSubs ? '#6366f1' : '#d1d5db' }}>
+          {hasSubs ? w.subs.length : '—'}
+        </td>
         <td>
           {readOnly ? (
             <div dangerouslySetInnerHTML={{ __html: w.who || '<span style="color:#9ca3af;font-size:10px">—</span>' }} />
@@ -189,6 +198,7 @@ export default function WorkflowRow({
             <WorkflowTagCell
               htmlContent={w.who}
               type="who"
+              isInspo={isInspo('who')}
               onChange={(html) => onUpdateMetric(cadenceKey, w.id, 'who', html)}
             />
           )}
@@ -200,6 +210,7 @@ export default function WorkflowRow({
             <WorkflowTagCell
               htmlContent={w.systems}
               type="systems"
+              isInspo={isInspo('systems')}
               onChange={(html) => onUpdateMetric(cadenceKey, w.id, 'systems', html)}
             />
           )}
@@ -210,6 +221,7 @@ export default function WorkflowRow({
           ) : (
             <textarea
               className="inline-textarea"
+              style={isInspo('how') ? inspoStyle : undefined}
               defaultValue={w.how}
               onBlur={e => onUpdateMetric(cadenceKey, w.id, 'how', e.target.value)}
               rows={3}
@@ -222,6 +234,7 @@ export default function WorkflowRow({
           ) : (
             <textarea
               className="inline-textarea pain"
+              style={isInspo('pain') ? inspoStyle : undefined}
               defaultValue={w.pain}
               onBlur={e => onUpdateMetric(cadenceKey, w.id, 'pain', e.target.value)}
               rows={3}
@@ -234,6 +247,7 @@ export default function WorkflowRow({
           ) : (
             <input
               type="text"
+              style={isInspo('hrs') ? inspoStyle : undefined}
               defaultValue={w.hrs}
               onBlur={e => onUpdateMetric(cadenceKey, w.id, 'hrs', e.target.value)}
             />
@@ -245,6 +259,7 @@ export default function WorkflowRow({
           ) : (
             <input
               type="text"
+              style={isInspo('err') ? inspoStyle : undefined}
               defaultValue={w.err}
               onBlur={e => onUpdateMetric(cadenceKey, w.id, 'err', e.target.value)}
             />
@@ -256,6 +271,7 @@ export default function WorkflowRow({
           ) : (
             <input
               type="text"
+              style={isInspo('opt') ? inspoStyle : undefined}
               defaultValue={w.opt}
               onBlur={e => onUpdateMetric(cadenceKey, w.id, 'opt', e.target.value)}
             />
@@ -324,6 +340,7 @@ export default function WorkflowRow({
                   />
                 </div>
               </td>
+              <td></td>
               <td colSpan={2}></td>
               <td>
                 <textarea

@@ -47,6 +47,7 @@ export default function TreasuryApp() {
   const [workflowData, setWorkflowData] = useState<WorkflowDataMap>(deepCloneWorkflowData);
   const [agents, setAgents] = useState<Agent[]>(AGENT_MAP);
   const [customWorkflows, setCustomWorkflows] = useState<Record<string, Workflow[]>>({});
+  const [editedFields, setEditedFields] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -118,6 +119,11 @@ export default function TreasuryApp() {
   }, []);
 
   const updateMetric = useCallback((cadence: string, id: string, field: string, val: string) => {
+    setEditedFields(prev => {
+      const next = new Set(prev);
+      next.add(`${cadence}:${id}:${field}`);
+      return next;
+    });
     setWorkflowData(prev => {
       const next = { ...prev };
       const cadenceData = { ...next[cadence], workflows: next[cadence].workflows.map(w =>
@@ -269,6 +275,7 @@ export default function TreasuryApp() {
         setWorkflowData(deepCloneWorkflowData());
       });
     setCustomWorkflows({});
+    setEditedFields(new Set());
   }, []);
 
   const buildPayload = useCallback(() => {
@@ -278,12 +285,22 @@ export default function TreasuryApp() {
       erp: '', tms: '', otherSystems: [], paymentVolume: '', facilities: '',
     };
 
+    // Helper: only include a field value if the user has confirmed/edited it
+    const confirmedVal = (cadence: string, id: string, field: string, val: string) => {
+      return editedFields.has(`${cadence}:${id}:${field}`) ? val : '';
+    };
+
     const wfSelections: Record<string, unknown[]> = {};
     Object.keys(workflowData).forEach(cadence => {
       wfSelections[cadence] = workflowData[cadence].workflows.map(w => ({
         id: w.id, name: w.name, doToday: w.doToday, wishToDo: w.wishToDo,
-        hrs: w.hrs, errCost: w.err, optimization: w.opt,
-        how: w.how, pain: w.pain, who: w.who, systems: w.systems,
+        hrs: confirmedVal(cadence, w.id, 'hrs', w.hrs),
+        errCost: confirmedVal(cadence, w.id, 'err', w.err),
+        optimization: confirmedVal(cadence, w.id, 'opt', w.opt),
+        how: confirmedVal(cadence, w.id, 'how', w.how),
+        pain: confirmedVal(cadence, w.id, 'pain', w.pain),
+        who: confirmedVal(cadence, w.id, 'who', w.who),
+        systems: confirmedVal(cadence, w.id, 'systems', w.systems),
         cadences: w.cadences,
         subs: (w.subs || []).map(s => ({ id: s.id, name: s.name, how: s.how, pain: s.pain, doToday: s.doToday, wishToDo: s.wishToDo })),
       }));
@@ -305,7 +322,7 @@ export default function TreasuryApp() {
       workflowSelections: wfSelections,
       customWorkflows: customWfs,
     };
-  }, [workflowData, customWorkflows]);
+  }, [workflowData, customWorkflows, editedFields]);
 
   const saveAssessment = useCallback(async () => {
     if (!profileRef.current?.validate()) {
@@ -418,6 +435,7 @@ export default function TreasuryApp() {
               customWorkflows={customWorkflows[key] || []}
               linkedWorkflows={linkedWorkflowsByCadence[key] || []}
               allCadenceKeys={cadenceKeys}
+              editedFields={editedFields}
               onToggleDo={toggleDo}
               onToggleWish={toggleWish}
               onUpdateMetric={updateMetric}

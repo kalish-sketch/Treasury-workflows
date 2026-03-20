@@ -17,6 +17,7 @@ interface WorkflowPanelProps {
   customWorkflows: Workflow[];
   linkedWorkflows: { workflow: Workflow; sourceCadence: string }[];
   allCadenceKeys: string[];
+  editedFields?: Set<string>;
   onToggleDo: (cadence: string, id: string, val: boolean) => void;
   onToggleWish: (cadence: string, id: string, val: boolean) => void;
   onUpdateMetric: (cadence: string, id: string, field: string, val: string) => void;
@@ -48,8 +49,12 @@ export default function WorkflowPanel({
   onToggleSubWish,
   onAddSub,
   onUpdateCadences,
+  editedFields,
 }: WorkflowPanelProps) {
   const allWorkflows = [...cadence.workflows, ...customWorkflows];
+  const allWithLinked = [...allWorkflows, ...linkedWorkflows.map(l => l.workflow)];
+  const doCount = allWithLinked.filter(w => w.doToday).length;
+  const wishCount = allWithLinked.filter(w => w.wishToDo).length;
   const [draft, setDraft] = useState({ ...EMPTY_ROW });
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -79,17 +84,22 @@ export default function WorkflowPanel({
       <div className="cadence-header">
         <span className="cadence-badge">{cadence.label}</span>
         <span className="cadence-title">{cadence.tagline}</span>
+        <span className="selection-counts" style={{ marginLeft: 'auto', display: 'flex', gap: '12px', fontSize: '12px', fontWeight: 600 }}>
+          <span style={{ color: '#22c55e' }}>✓ Do: {doCount}</span>
+          <span style={{ color: '#f59e0b' }}>★ Wish: {wishCount}</span>
+        </span>
       </div>
       <table>
         <colgroup>
           <col style={{ width: '3%' }} />
           <col style={{ width: '3%' }} />
-          <col style={{ width: '12%' }} />
+          <col style={{ width: '11%' }} />
+          <col style={{ width: '4%' }} />
           <col style={{ width: '8%' }} />
           <col style={{ width: '8%' }} />
-          <col style={{ width: '19%' }} />
-          <col style={{ width: '15%' }} />
-          <col style={{ width: '6%' }} />
+          <col style={{ width: '18%' }} />
+          <col style={{ width: '14%' }} />
+          <col style={{ width: '5%' }} />
           <col style={{ width: '7%' }} />
           <col style={{ width: '7%' }} />
           <col style={{ width: '7%' }} />
@@ -99,6 +109,7 @@ export default function WorkflowPanel({
             <th title="We do this today">✓ Do</th>
             <th title="We wish we could do this">★ Wish</th>
             <th>Workflow</th>
+            <th>Subs</th>
             <th>Who</th>
             <th>Systems</th>
             <th>How It Actually Works</th>
@@ -116,6 +127,7 @@ export default function WorkflowPanel({
               workflow={w}
               cadenceKey={cadenceKey}
               allCadenceKeys={allCadenceKeys}
+              editedFields={editedFields}
               onToggleDo={onToggleDo}
               onToggleWish={onToggleWish}
               onUpdateMetric={onUpdateMetric}
@@ -142,6 +154,7 @@ export default function WorkflowPanel({
                 onChange={e => updateDraft('name', e.target.value)}
               />
             </td>
+            <td></td>
             <td>
               <input
                 type="text"
@@ -223,7 +236,7 @@ export default function WorkflowPanel({
           {linkedWorkflows.length > 0 && (
             <>
               <tr className="linked-divider-row">
-                <td colSpan={11}>
+                <td colSpan={12}>
                   Linked from other cadences
                 </td>
               </tr>
