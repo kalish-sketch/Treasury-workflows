@@ -2,6 +2,7 @@
 
 import { useState, useMemo, Fragment } from 'react';
 import { WorkflowDataMap, Workflow } from '@/types';
+import { parseNumeric } from '@/lib/parseNumeric';
 
 interface AllWorkflowsPanelProps {
   workflowData: WorkflowDataMap;
@@ -38,23 +39,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Business Continuity': '#cb4335',
   'Shared Services & In-House Bank': '#5dade2',
 };
-
-/** Parse a string like "20–40", "$50K–100K/yr", "5", "$2M" into a number. */
-function parseNumeric(val: string): number {
-  if (!val || val === '—' || val === '-') return 0;
-  const cleaned = val.replace(/[,$\/yr\/mo\s]/g, '');
-  const parts = cleaned.match(/[\d.]+[KkMm]?/g);
-  if (!parts || parts.length === 0) return 0;
-  const toNum = (s: string): number => {
-    const upper = s.toUpperCase();
-    if (upper.endsWith('M')) return parseFloat(s) * 1_000_000;
-    if (upper.endsWith('K')) return parseFloat(s) * 1_000;
-    return parseFloat(s) || 0;
-  };
-  const nums = parts.map(toNum);
-  const sum = nums.reduce((a, b) => a + b, 0);
-  return sum / nums.length;
-}
 
 type SelectionFilter = 'all' | 'do' | 'wish' | 'selected' | 'unselected';
 

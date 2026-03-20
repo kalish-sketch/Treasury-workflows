@@ -115,7 +115,7 @@ export default function WorkflowRow({
     onUpdateCadences(cadenceKey, w.id, current);
   };
 
-  const colCount = 12; // total columns with Subs + Freq
+  const colCount = 13; // total columns with Category + Subs + Freq
 
   return (
     <>
@@ -171,22 +171,21 @@ export default function WorkflowRow({
               )}
               <br />
               <span className="time-est">{w.timeEst || ''}</span>
-              {w.category && (
-                <>
-                  <br />
-                  <span
-                    style={{
-                      display: 'inline-block', padding: '1px 6px', borderRadius: '8px',
-                      fontSize: '9px', fontWeight: 600, color: '#fff', marginTop: '2px',
-                      background: CATEGORY_COLORS[w.category] || '#6b7280',
-                    }}
-                  >
-                    {w.category}
-                  </span>
-                </>
-              )}
             </div>
           </div>
+        </td>
+        <td>
+          {w.category && (
+            <span
+              style={{
+                display: 'inline-block', padding: '1px 6px', borderRadius: '8px',
+                fontSize: '9px', fontWeight: 600, color: '#fff',
+                background: CATEGORY_COLORS[w.category] || '#6b7280',
+              }}
+            >
+              {w.category}
+            </span>
+          )}
         </td>
         <td style={{ textAlign: 'center', fontSize: '11px', color: hasSubs ? '#6366f1' : '#d1d5db' }}>
           {hasSubs ? w.subs.length : '—'}
@@ -340,7 +339,8 @@ export default function WorkflowRow({
                   />
                 </div>
               </td>
-              <td></td>
+              <td></td>{/* category */}
+              <td></td>{/* subs */}
               <td colSpan={2}></td>
               <td>
                 <textarea
