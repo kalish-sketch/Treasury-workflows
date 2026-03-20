@@ -43,11 +43,18 @@ export default function AllWorkflowsPanel({
     }
   }
 
+  const doCount = allRows.filter(r => r.workflow.doToday).length;
+  const wishCount = allRows.filter(r => r.workflow.wishToDo).length;
+
   return (
     <div className="cadence-section all-workflows">
       <div className="cadence-header">
         <span className="cadence-badge" style={{ background: '#1a1a2e' }}>All</span>
         <span className="cadence-title">All Workflows — Summary View</span>
+      </div>
+      <div className="selection-counts" style={{ display: 'flex', gap: '12px', fontSize: '12px', fontWeight: 600, padding: '6px 4px' }}>
+        <span style={{ color: '#22c55e' }}>✓ Do: {doCount}</span>
+        <span style={{ color: '#f59e0b' }}>★ Wish: {wishCount}</span>
       </div>
       <p className="note">
         This is a read-only overview. Edit workflows in their respective cadence tabs (Daily, Weekly, etc.).
