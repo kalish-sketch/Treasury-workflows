@@ -50,20 +50,10 @@ export default function AllWorkflowsPanel({
   const [cadenceFilter, setCadenceFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [selectionFilter, setSelectionFilter] = useState<SelectionFilter>('all');
-  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
-
   const toggleExpand = (key: string) => {
     setExpandedIds(prev => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
-  };
-
-  const toggleCategoryCollapse = (cat: string) => {
-    setCollapsedCategories(prev => {
-      const next = new Set(prev);
-      if (next.has(cat)) next.delete(cat); else next.add(cat);
       return next;
     });
   };
@@ -255,7 +245,6 @@ export default function AllWorkflowsPanel({
       {/* ── Table grouped by Category ── */}
       {sortedCategories.map(cat => {
         const rows = rowsByCategory[cat];
-        const isCollapsed = collapsedCategories.has(cat);
         const catColor = CATEGORY_COLORS[cat] || '#6b7280';
         const catM = categoryMetrics[cat];
         const catDoHrs = catM ? Math.round(catM.doHrs) : 0;
@@ -263,14 +252,12 @@ export default function AllWorkflowsPanel({
 
         return (
           <div key={cat} className="all-wf-category-group">
-            <button className="all-wf-category-header" onClick={() => toggleCategoryCollapse(cat)}>
-              <span className="all-wf-category-expand">{isCollapsed ? '▸' : '▾'}</span>
+            <div className="all-wf-category-header">
               <span className="ws-category-pill" style={{ background: catColor }}>{cat}</span>
               <span className="all-wf-category-count">{rows.length} workflow{rows.length !== 1 ? 's' : ''}</span>
               {catDoHrs > 0 && <span className="all-wf-category-hrs do">✓ {catDoHrs} hrs/mo</span>}
               {catWishHrs > 0 && <span className="all-wf-category-hrs wish">★ {catWishHrs} hrs/mo</span>}
-            </button>
-            {!isCollapsed && (
+            </div>
               <table>
                 <colgroup>
                   <col style={{ width: '3%' }} />
@@ -405,7 +392,6 @@ export default function AllWorkflowsPanel({
                   })}
                 </tbody>
               </table>
-            )}
           </div>
         );
       })}

@@ -315,9 +315,7 @@ tr.sub-row:hover { background: #f0f4ff; }
 
 /* Category group headers */
 .all-wf-category-group { margin-bottom: 16px; }
-.all-wf-category-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f0f4ff; border-radius: 8px 8px 0 0; border: none; width: 100%; cursor: pointer; font-family: inherit; text-align: left; transition: background 0.15s; }
-.all-wf-category-header:hover { background: #e0e7ff; }
-.all-wf-category-expand { font-size: 12px; color: #6b7280; width: 16px; }
+.all-wf-category-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f0f4ff; border-radius: 8px 8px 0 0; border: none; width: 100%; font-family: inherit; text-align: left; }
 .all-wf-category-count { font-size: 11px; color: #6b7280; font-weight: 500; }
 .all-wf-category-hrs { font-size: 11px; font-weight: 600; margin-left: 4px; }
 .all-wf-category-hrs.do { color: #22c55e; }
