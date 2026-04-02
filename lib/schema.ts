@@ -1,5 +1,60 @@
-import { pgTable, text, timestamp, jsonb, uuid, integer, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, jsonb, uuid, integer, boolean, primaryKey } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
+import type { AdapterAccountType } from 'next-auth/adapters';
+
+// ── Auth.js tables ──
+
+export const users = pgTable('users', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text('name'),
+  email: text('email').unique(),
+  emailVerified: timestamp('email_verified', { mode: 'date' }),
+  image: text('image'),
+});
+
+export const accounts = pgTable('accounts', {
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: text('type').$type<AdapterAccountType>().notNull(),
+  provider: text('provider').notNull(),
+  providerAccountId: text('provider_account_id').notNull(),
+  refresh_token: text('refresh_token'),
+  access_token: text('access_token'),
+  expires_at: integer('expires_at'),
+  token_type: text('token_type'),
+  scope: text('scope'),
+  id_token: text('id_token'),
+  session_state: text('session_state'),
+}, (account) => [
+  primaryKey({ columns: [account.provider, account.providerAccountId] }),
+]);
+
+export const sessions = pgTable('sessions', {
+  sessionToken: text('session_token').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expires: timestamp('expires', { mode: 'date' }).notNull(),
+});
+
+export const verificationTokens = pgTable('verification_tokens', {
+  identifier: text('identifier').notNull(),
+  token: text('token').notNull(),
+  expires: timestamp('expires', { mode: 'date' }).notNull(),
+}, (vt) => [
+  primaryKey({ columns: [vt.identifier, vt.token] }),
+]);
+
+export const usersRelations = relations(users, ({ many }) => ({
+  accounts: many(accounts),
+  sessions: many(sessions),
+  assessments: many(assessments),
+}));
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, { fields: [accounts.userId], references: [users.id] }),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, { fields: [sessions.userId], references: [users.id] }),
+}));
 
 // ── Cadences (daily, weekly, monthly, quarterly, annual) ──
 
@@ -90,6 +145,7 @@ export const agentWorkflowsRelations = relations(agentWorkflows, ({ one }) => ({
 
 export const assessments = pgTable('assessments', {
   id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
   companyName: text('company_name').notNull().default(''),
   profile: jsonb('profile').notNull().default('{}'),
   workflowSelections: jsonb('workflow_selections').notNull().default('{}'),
@@ -98,11 +154,16 @@ export const assessments = pgTable('assessments', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+export const assessmentsRelations = relations(assessments, ({ one }) => ({
+  user: one(users, { fields: [assessments.userId], references: [users.id] }),
+}));
+
 // ── Types ──
 
 export type Cadence = typeof cadences.$inferSelect;
 export type Workflow = typeof workflows.$inferSelect;
 export type SubWorkflow = typeof subWorkflows.$inferSelect;
 export type Agent = typeof agents.$inferSelect;
+export type User = typeof users.$inferSelect;
 export type Assessment = typeof assessments.$inferSelect;
 export type NewAssessment = typeof assessments.$inferInsert;
