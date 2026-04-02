@@ -19,7 +19,7 @@ interface AssessmentSummary {
 
 type SortField = 'companyName' | 'createdAt';
 type SortDir = 'asc' | 'desc';
-type BackofficeTab = 'assessments' | 'workflows';
+type BackofficeTab = 'assessments' | 'workflows' | 'users';
 type WsSortField = 'name' | 'category' | 'cadence';
 
 // ── Category color map ──
@@ -494,6 +494,96 @@ function DetailView({ detail }: { detail: AssessmentFull }) {
   );
 }
 
+// ── Users Tab ──
+
+interface UserInfo {
+  id: string;
+  email: string | null;
+  name: string | null;
+  emailVerified: string | null;
+  companies: string[];
+  assessmentCount: number;
+  lastActivity: string | null;
+}
+
+function UsersTab() {
+  const [userList, setUserList] = useState<UserInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/users')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) setUserList(data);
+      })
+      .catch(err => console.error('Failed to load users:', err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <p style={{ color: '#94a3b8', textAlign: 'center', padding: '40px' }}>Loading users...</p>;
+  }
+
+  if (userList.length === 0) {
+    return <p style={{ color: '#94a3b8', textAlign: 'center', padding: '40px' }}>No users have signed up yet.</p>;
+  }
+
+  return (
+    <>
+      <div className="ws-stats">
+        <span><strong>{userList.length}</strong> Total Users</span>
+        <span style={{ color: '#10b981' }}><strong>{userList.filter(u => u.assessmentCount > 0).length}</strong> With Assessments</span>
+        <span style={{ color: '#94a3b8' }}><strong>{userList.filter(u => u.assessmentCount === 0).length}</strong> No Assessments</span>
+      </div>
+      <table className="bo-table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Companies</th>
+            <th>Assessments</th>
+            <th>Signed Up</th>
+            <th>Last Activity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {userList.map(u => (
+            <tr key={u.id}>
+              <td style={{ fontWeight: 600 }}>{u.email || '—'}</td>
+              <td>
+                {u.companies.length > 0
+                  ? u.companies.map((c, i) => (
+                    <span key={i} style={{
+                      display: 'inline-block',
+                      padding: '1px 8px',
+                      borderRadius: 3,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      background: '#e0e7ff',
+                      color: '#3730a3',
+                      marginRight: 4,
+                      marginBottom: 2,
+                    }}>
+                      {c}
+                    </span>
+                  ))
+                  : <span style={{ color: '#9ca3af', fontSize: 11 }}>No assessments</span>
+                }
+              </td>
+              <td style={{ textAlign: 'center', fontWeight: 600 }}>{u.assessmentCount}</td>
+              <td style={{ fontSize: 12, color: '#6b7280' }}>
+                {u.emailVerified ? new Date(u.emailVerified).toLocaleDateString() : '—'}
+              </td>
+              <td style={{ fontSize: 12, color: '#6b7280' }}>
+                {u.lastActivity ? new Date(u.lastActivity).toLocaleDateString() : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
 // ── Main Backoffice Page ──
 
 export default function BackofficePage() {
@@ -621,10 +711,18 @@ export default function BackofficePage() {
         >
           Workflow Selector
         </button>
+        <button
+          className={`bo-tab ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => setActiveTab('users')}
+        >
+          Users
+        </button>
       </div>
 
       <div className="main-content">
-        {activeTab === 'assessments' ? (
+        {activeTab === 'users' ? (
+          <UsersTab />
+        ) : activeTab === 'assessments' ? (
           <>
             {loading ? (
               <p style={{ color: '#94a3b8', textAlign: 'center', padding: '40px' }}>Loading assessments...</p>

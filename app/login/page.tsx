@@ -2,16 +2,27 @@
 
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const searchParams = useSearchParams();
+  const authError = searchParams.get('error');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) return;
+    setError('');
     setLoading(true);
-    await signIn('resend', { email, callbackUrl: '/dashboard' });
+    try {
+      await signIn('resend', { email, callbackUrl: '/' });
+    } catch {
+      setError('Something went wrong. Please try again.');
+      setLoading(false);
+    }
   }
 
   return (
@@ -45,6 +56,21 @@ export default function LoginPage() {
         }}>
           Enter your email and we&apos;ll send you a magic link to access your treasury workflow assessments.
         </p>
+        {(error || authError) && (
+          <div style={{
+            background: '#fef2f2',
+            color: '#991b1b',
+            padding: '10px 14px',
+            borderRadius: 6,
+            fontSize: 13,
+            marginBottom: 16,
+          }}>
+            {error || (authError === 'Configuration'
+              ? 'Authentication is not configured yet. Please contact the administrator to set up AUTH_SECRET and AUTH_RESEND_KEY.'
+              : 'Sign in failed. Please try again.'
+            )}
+          </div>
+        )}
         <form onSubmit={handleSubmit}>
           <label style={{
             display: 'block',
@@ -91,12 +117,19 @@ export default function LoginPage() {
             {loading ? 'Sending...' : 'Send Magic Link'}
           </button>
         </form>
-        <div style={{ marginTop: 20, textAlign: 'center' }}>
-          <a href="/" style={{ fontSize: 13, color: '#666', textDecoration: 'underline' }}>
-            Back to assessment
-          </a>
-        </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa' }}>
+        <p style={{ color: '#666' }}>Loading...</p>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

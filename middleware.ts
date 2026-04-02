@@ -4,9 +4,15 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isLoggedIn = !!req.auth;
 
-  const protectedPaths = ['/dashboard'];
+  // Public paths that don't require authentication
+  const publicPaths = ['/login', '/check-email', '/api/', '/backoffice'];
 
-  if (protectedPaths.some(p => pathname.startsWith(p)) && !isLoggedIn) {
+  if (publicPaths.some(p => pathname.startsWith(p))) {
+    return; // Allow through
+  }
+
+  // Everything else requires login (including /, /dashboard)
+  if (!isLoggedIn) {
     return Response.redirect(new URL('/login', req.nextUrl.origin));
   }
 });
