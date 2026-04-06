@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { assessments } from '@/lib/schema';
 import { desc, eq, sql } from 'drizzle-orm';
-import { auth } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
 
 // GET /api/assessments - list all assessments
 // GET /api/assessments?id=<uuid> - get a single assessment
@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (mine === 'true') {
-      const session = await auth();
-      if (!session?.user?.id) {
+      const session = await getSession();
+      if (!session) {
         return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
       }
       const userAssessments = await getDb()
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
           updatedAt: assessments.updatedAt,
         })
         .from(assessments)
-        .where(eq(assessments.userId, session.user.id))
+        .where(eq(assessments.userId, session.userId))
         .orderBy(desc(assessments.updatedAt));
 
       return NextResponse.json(userAssessments);
@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 });
     }
 
-    const session = await auth();
-    const userId = session?.user?.id || null;
+    const session = await getSession();
+    const userId = session?.userId || null;
 
     // Check for existing assessment with same company name (case-insensitive), scoped to user
     const existing = await getDb()
@@ -131,8 +131,8 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'id is required' }, { status: 400 });
   }
 
-  const session = await auth();
-  const userId = session?.user?.id || null;
+  const session = await getSession();
+  const userId = session?.userId || null;
 
   // If authenticated, verify ownership
   if (userId) {

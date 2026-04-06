@@ -1,6 +1,7 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface TopBarProps {
   onReset: () => void;
@@ -12,22 +13,33 @@ interface TopBarProps {
 }
 
 export default function TopBar({ onReset, onSave, saving, onSubmit, submitting, onViewRecommendations }: TopBarProps) {
-  const { data: session } = useSession();
+  const [user, setUser] = useState<{ email: string } | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(data => setUser(data.user))
+      .catch(() => {});
+  }, []);
+
+  async function handleSignOut() {
+    await fetch('/api/auth/signout', { method: 'POST' });
+    router.push('/login');
+    router.refresh();
+  }
 
   return (
     <div className="top-bar">
       <h1>Treasurer Workflows — The World Before Nilus</h1>
       <div className="bar-actions">
-        {session?.user ? (
+        {user ? (
           <>
             <span style={{ fontSize: 12, color: '#cbd5e1', alignSelf: 'center' }}>
-              {session.user.email}
+              {user.email}
             </span>
             <a href="/dashboard" className="btn btn-link">My Assessments</a>
-            <button
-              className="btn btn-link"
-              onClick={() => signOut({ callbackUrl: '/' })}
-            >
+            <button className="btn btn-link" onClick={handleSignOut}>
               Sign Out
             </button>
           </>

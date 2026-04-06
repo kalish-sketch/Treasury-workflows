@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { users, assessments } from '@/lib/schema';
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, sql } from 'drizzle-orm';
 
 // GET /api/users - list all users with their assessment counts and companies
 export async function GET() {
@@ -11,10 +11,10 @@ export async function GET() {
         id: users.id,
         email: users.email,
         name: users.name,
-        emailVerified: users.emailVerified,
+        createdAt: users.createdAt,
       })
       .from(users)
-      .orderBy(desc(users.emailVerified));
+      .orderBy(desc(users.createdAt));
 
     // Get assessment counts and company names per user
     const userAssessments = await getDb()

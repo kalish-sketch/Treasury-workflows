@@ -1,21 +1,28 @@
-import { auth } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyToken } from '@/lib/auth';
 
-export default auth((req) => {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const isLoggedIn = !!req.auth;
 
   // Public paths that don't require authentication
-  const publicPaths = ['/login', '/check-email', '/api/', '/backoffice'];
-
+  const publicPaths = ['/login', '/api/', '/backoffice'];
   if (publicPaths.some(p => pathname.startsWith(p))) {
-    return; // Allow through
+    return NextResponse.next();
   }
 
-  // Everything else requires login (including /, /dashboard)
-  if (!isLoggedIn) {
-    return Response.redirect(new URL('/login', req.nextUrl.origin));
+  // Check session cookie
+  const token = req.cookies.get('session')?.value;
+  if (!token) {
+    return NextResponse.redirect(new URL('/login', req.url));
   }
-});
+
+  const session = await verifyToken(token);
+  if (!session) {
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
+
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],

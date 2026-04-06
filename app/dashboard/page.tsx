@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { assessments } from '@/lib/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -6,8 +6,8 @@ import { redirect } from 'next/navigation';
 import SignOutButton from './SignOutButton';
 
 export default async function DashboardPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect('/login');
+  const session = await getSession();
+  if (!session) redirect('/login');
 
   let userAssessments: { id: string; companyName: string; createdAt: Date; updatedAt: Date }[] = [];
 
@@ -20,7 +20,7 @@ export default async function DashboardPage() {
         updatedAt: assessments.updatedAt,
       })
       .from(assessments)
-      .where(eq(assessments.userId, session.user.id))
+      .where(eq(assessments.userId, session.userId))
       .orderBy(desc(assessments.updatedAt));
   } catch {
     // DB may not be available — show empty state
@@ -38,7 +38,7 @@ export default async function DashboardPage() {
       }}>
         <h1 style={{ fontSize: 20, fontWeight: 700 }}>My Assessments</h1>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: '#cbd5e1' }}>{session.user.email}</span>
+          <span style={{ fontSize: 13, color: '#cbd5e1' }}>{session.email}</span>
           <a href="/" style={{
             padding: '8px 18px',
             borderRadius: 6,
@@ -98,7 +98,6 @@ export default async function DashboardPage() {
                   boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
                   textDecoration: 'none',
                   color: 'inherit',
-                  transition: 'box-shadow 0.15s',
                 }}
               >
                 <div>

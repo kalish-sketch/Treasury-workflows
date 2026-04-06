@@ -1,24 +1,39 @@
 'use client';
 
-import { signIn } from 'next-auth/react';
 import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 
-function LoginForm() {
+export default function LoginPage() {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const searchParams = useSearchParams();
-  const authError = searchParams.get('error');
+  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim()) return;
     setError('');
     setLoading(true);
+
     try {
-      await signIn('resend', { email, callbackUrl: '/' });
+      const endpoint = isSignUp ? '/api/auth/signup' : '/api/auth/signin';
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Something went wrong');
+        setLoading(false);
+        return;
+      }
+
+      router.push('/');
+      router.refresh();
     } catch {
       setError('Something went wrong. Please try again.');
       setLoading(false);
@@ -47,16 +62,19 @@ function LoginForm() {
           color: '#1a1a2e',
           marginBottom: 8,
         }}>
-          Sign in to your assessment
+          {isSignUp ? 'Create your account' : 'Sign in to your assessment'}
         </h1>
         <p style={{
           fontSize: 14,
           color: '#666',
           marginBottom: 24,
         }}>
-          Enter your email and we&apos;ll send you a magic link to access your treasury workflow assessments.
+          {isSignUp
+            ? 'Create an account to save and revisit your treasury workflow assessments.'
+            : 'Sign in to access your treasury workflow assessments.'
+          }
         </p>
-        {(error || authError) && (
+        {error && (
           <div style={{
             background: '#fef2f2',
             color: '#991b1b',
@@ -65,10 +83,7 @@ function LoginForm() {
             fontSize: 13,
             marginBottom: 16,
           }}>
-            {error || (authError === 'Configuration'
-              ? 'Authentication is not configured yet. Please contact the administrator to set up AUTH_SECRET and AUTH_RESEND_KEY.'
-              : 'Sign in failed. Please try again.'
-            )}
+            {error}
           </div>
         )}
         <form onSubmit={handleSubmit}>
@@ -87,6 +102,33 @@ function LoginForm() {
             placeholder="you@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              border: '1px solid #ddd',
+              borderRadius: 6,
+              fontSize: 14,
+              fontFamily: 'inherit',
+              marginBottom: 12,
+              boxSizing: 'border-box',
+            }}
+          />
+          <label style={{
+            display: 'block',
+            fontSize: 12,
+            fontWeight: 600,
+            color: '#666',
+            marginBottom: 6,
+          }}>
+            Password
+          </label>
+          <input
+            type="password"
+            required
+            minLength={6}
+            placeholder={isSignUp ? 'At least 6 characters' : 'Your password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             style={{
               width: '100%',
               padding: '10px 14px',
@@ -114,22 +156,25 @@ function LoginForm() {
               opacity: loading ? 0.7 : 1,
             }}
           >
-            {loading ? 'Sending...' : 'Send Magic Link'}
+            {loading ? (isSignUp ? 'Creating account...' : 'Signing in...') : (isSignUp ? 'Create Account' : 'Sign In')}
           </button>
         </form>
+        <div style={{ marginTop: 20, textAlign: 'center' }}>
+          <button
+            onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#3b82f6',
+              fontSize: 13,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+            }}
+          >
+            {isSignUp ? 'Already have an account? Sign in' : 'Don\'t have an account? Sign up'}
+          </button>
+        </div>
       </div>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa' }}>
-        <p style={{ color: '#666' }}>Loading...</p>
-      </div>
-    }>
-      <LoginForm />
-    </Suspense>
   );
 }

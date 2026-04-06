@@ -498,9 +498,9 @@ function DetailView({ detail }: { detail: AssessmentFull }) {
 
 interface UserInfo {
   id: string;
-  email: string | null;
+  email: string;
   name: string | null;
-  emailVerified: string | null;
+  createdAt: string;
   companies: string[];
   assessmentCount: number;
   lastActivity: string | null;
@@ -571,7 +571,7 @@ function UsersTab() {
               </td>
               <td style={{ textAlign: 'center', fontWeight: 600 }}>{u.assessmentCount}</td>
               <td style={{ fontSize: 12, color: '#6b7280' }}>
-                {u.emailVerified ? new Date(u.emailVerified).toLocaleDateString() : '—'}
+                {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
               </td>
               <td style={{ fontSize: 12, color: '#6b7280' }}>
                 {u.lastActivity ? new Date(u.lastActivity).toLocaleDateString() : '—'}
