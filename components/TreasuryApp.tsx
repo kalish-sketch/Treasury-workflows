@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { WORKFLOW_DATA } from '@/data/workflows';
 import { AGENT_MAP } from '@/data/agents';
 import { WorkflowDataMap, Workflow, Agent } from '@/types';
@@ -51,7 +52,9 @@ export default function TreasuryApp() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [assessmentId, setAssessmentId] = useState<string | null>(null);
   const profileRef = useRef<CompanyProfileHandle>(null);
+  const searchParams = useSearchParams();
 
   // Try to fetch from API; if DB is empty or unavailable, keep static fallback
   useEffect(() => {
@@ -61,16 +64,89 @@ export default function TreasuryApp() {
           fetch('/api/workflows'),
           fetch('/api/agents'),
         ]);
+
+        let wfData: WorkflowDataMap | null = null;
         if (wfRes.ok) {
           const raw = await wfRes.json();
           if (Object.keys(raw).length > 0) {
-            setWorkflowData(addDefaultsToWorkflowData(raw));
+            wfData = addDefaultsToWorkflowData(raw);
+            setWorkflowData(wfData);
           }
         }
         if (agRes.ok) {
           const agentData = await agRes.json();
           if (agentData.length > 0) {
             setAgents(agentData);
+          }
+        }
+
+        // Load existing assessment if ?id= is present
+        const id = searchParams.get('id');
+        if (id) {
+          try {
+            const aRes = await fetch(`/api/assessments?id=${id}`);
+            if (aRes.ok) {
+              const assessment = await aRes.json();
+              setAssessmentId(assessment.id);
+
+              // Populate company profile after a tick so refs are ready
+              setTimeout(() => {
+                if (profileRef.current && assessment.profile) {
+                  profileRef.current.setProfile(assessment.profile);
+                }
+              }, 100);
+
+              // Apply workflow selections
+              const selections = assessment.workflowSelections || {};
+              const baseData = wfData || deepCloneWorkflowData();
+              for (const [cadence, wfs] of Object.entries(selections)) {
+                if (!baseData[cadence]) continue;
+                for (const saved of wfs as any[]) {
+                  const wf = baseData[cadence].workflows.find((w: any) => w.id === saved.id || w.name === saved.name);
+                  if (wf) {
+                    wf.doToday = saved.doToday || false;
+                    wf.wishToDo = saved.wishToDo || false;
+                    if (saved.hrs) wf.hrs = saved.hrs;
+                    if (saved.errCost) wf.err = saved.errCost;
+                    if (saved.optimization) wf.opt = saved.optimization;
+                    if (saved.who) wf.who = saved.who;
+                    if (saved.systems) wf.systems = saved.systems;
+                    if (saved.how) wf.how = saved.how;
+                    if (saved.pain) wf.pain = saved.pain;
+                    if (saved.subs) {
+                      for (const savedSub of saved.subs) {
+                        const sub = wf.subs?.find((s: any) => s.id === savedSub.id || s.name === savedSub.name);
+                        if (sub) {
+                          sub.doToday = savedSub.doToday || false;
+                          sub.wishToDo = savedSub.wishToDo || false;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              setWorkflowData({ ...baseData });
+
+              // Apply custom workflows
+              if (assessment.customWorkflows) {
+                const customs: Record<string, Workflow[]> = {};
+                for (const [cadence, wfs] of Object.entries(assessment.customWorkflows)) {
+                  if (Array.isArray(wfs) && wfs.length > 0) {
+                    customs[cadence] = (wfs as any[]).map(w => ({
+                      ...w,
+                      doToday: w.doToday || false,
+                      wishToDo: w.wishToDo || false,
+                      subs: w.subs || [],
+                      custom: true,
+                      cadences: w.cadences || [cadence],
+                    }));
+                  }
+                }
+                setCustomWorkflows(customs);
+              }
+            }
+          } catch (err) {
+            console.error('Failed to load assessment:', err);
           }
         }
       } catch (err) {

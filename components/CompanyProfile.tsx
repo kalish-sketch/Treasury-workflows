@@ -6,6 +6,7 @@ import { CompanyProfile as CompanyProfileType } from '@/types';
 
 export interface CompanyProfileHandle {
   getProfile: () => CompanyProfileType;
+  setProfile: (p: CompanyProfileType) => void;
   validate: () => boolean;
 }
 
@@ -89,7 +90,25 @@ const CompanyProfile = forwardRef<CompanyProfileHandle>(function CompanyProfile(
     return true;
   }, [currencies, banks]);
 
-  useImperativeHandle(ref, () => ({ getProfile, validate }), [getProfile, validate]);
+  const setProfile = useCallback((p: CompanyProfileType) => {
+    if (companyRef.current) companyRef.current.value = p.company || '';
+    if (revenueRef.current) revenueRef.current.value = p.revenue || '';
+    if (industryRef.current) industryRef.current.value = p.industry || '';
+    if (entitiesRef.current) entitiesRef.current.value = p.entities || '';
+    if (countriesRef.current) countriesRef.current.value = p.countries || '';
+    if (teamSizeRef.current) teamSizeRef.current.value = p.teamSize || '';
+    if (numBanksRef.current) numBanksRef.current.value = p.numBanks || '';
+    if (numAccountsRef.current) numAccountsRef.current.value = p.numAccounts || '';
+    if (erpRef.current) erpRef.current.value = p.erp || '';
+    if (tmsRef.current) tmsRef.current.value = p.tms || '';
+    if (paymentVolRef.current) paymentVolRef.current.value = p.paymentVolume || '';
+    if (facilitiesRef.current) facilitiesRef.current.value = p.facilities || '';
+    setCurrencies(p.currencies || []);
+    setBanks(p.banks || []);
+    setOtherSystems(p.otherSystems || []);
+  }, []);
+
+  useImperativeHandle(ref, () => ({ getProfile, setProfile, validate }), [getProfile, setProfile, validate]);
 
   const clearError = (key: string) => {
     if (errors[key]) setErrors(prev => { const { [key]: _, ...rest } = prev; return rest; });
