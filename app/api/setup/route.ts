@@ -2,11 +2,19 @@ import { neon } from '@neondatabase/serverless';
 import { NextResponse } from 'next/server';
 
 /**
- * POST /api/setup
+ * GET or POST /api/setup
  * Creates all database tables. Safe to call multiple times (uses IF NOT EXISTS).
- * Remove this route once your DB is set up.
+ * Visit /api/setup in a browser to run.
  */
+export async function GET() {
+  return setup();
+}
+
 export async function POST() {
+  return setup();
+}
+
+async function setup() {
   const url = process.env.DATABASE_URL;
   if (!url) {
     return NextResponse.json({ error: 'DATABASE_URL not configured' }, { status: 500 });
