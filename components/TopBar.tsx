@@ -1,3 +1,8 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
 interface TopBarProps {
   onReset: () => void;
   onSave: () => void;
@@ -8,10 +13,39 @@ interface TopBarProps {
 }
 
 export default function TopBar({ onReset, onSave, saving, onSubmit, submitting, onViewRecommendations }: TopBarProps) {
+  const [user, setUser] = useState<{ email: string } | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(data => setUser(data.user))
+      .catch(() => {});
+  }, []);
+
+  async function handleSignOut() {
+    await fetch('/api/auth/signout', { method: 'POST' });
+    router.push('/login');
+    router.refresh();
+  }
+
   return (
     <div className="top-bar">
       <h1>Treasurer Workflows — The World Before Nilus</h1>
       <div className="bar-actions">
+        {user ? (
+          <>
+            <span style={{ fontSize: 12, color: '#cbd5e1', alignSelf: 'center' }}>
+              {user.email}
+            </span>
+            <a href="/dashboard" className="btn btn-link">My Assessments</a>
+            <button className="btn btn-link" onClick={handleSignOut}>
+              Sign Out
+            </button>
+          </>
+        ) : (
+          <a href="/login" className="btn btn-link">Sign In</a>
+        )}
         <a href="https://www.nilus.com" target="_blank" rel="noopener noreferrer" className="btn btn-link">nilus.com</a>
         <a href="https://academy.nilus.com/" target="_blank" rel="noopener noreferrer" className="btn btn-link">Academy</a>
         <button className="btn btn-save" onClick={onSave} disabled={saving || submitting}>

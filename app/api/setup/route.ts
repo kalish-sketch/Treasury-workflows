@@ -88,5 +88,22 @@ export async function POST() {
     )
   `;
 
+  // ── Users table ──
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      name TEXT,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    )
+  `;
+
+  // Add user_id to assessments (idempotent)
+  await sql`
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(id) ON DELETE SET NULL
+  `;
+
   return NextResponse.json({ success: true, message: 'All tables created' });
 }

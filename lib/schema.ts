@@ -1,6 +1,20 @@
 import { pgTable, text, timestamp, jsonb, uuid, integer, boolean } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
+// ── Users ──
+
+export const users = pgTable('users', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  email: text('email').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  name: text('name'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const usersRelations = relations(users, ({ many }) => ({
+  assessments: many(assessments),
+}));
+
 // ── Cadences (daily, weekly, monthly, quarterly, annual) ──
 
 export const cadences = pgTable('cadences', {
@@ -90,6 +104,7 @@ export const agentWorkflowsRelations = relations(agentWorkflows, ({ one }) => ({
 
 export const assessments = pgTable('assessments', {
   id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
   companyName: text('company_name').notNull().default(''),
   profile: jsonb('profile').notNull().default('{}'),
   workflowSelections: jsonb('workflow_selections').notNull().default('{}'),
@@ -98,11 +113,16 @@ export const assessments = pgTable('assessments', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+export const assessmentsRelations = relations(assessments, ({ one }) => ({
+  user: one(users, { fields: [assessments.userId], references: [users.id] }),
+}));
+
 // ── Types ──
 
 export type Cadence = typeof cadences.$inferSelect;
 export type Workflow = typeof workflows.$inferSelect;
 export type SubWorkflow = typeof subWorkflows.$inferSelect;
 export type Agent = typeof agents.$inferSelect;
+export type User = typeof users.$inferSelect;
 export type Assessment = typeof assessments.$inferSelect;
 export type NewAssessment = typeof assessments.$inferInsert;
